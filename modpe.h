@@ -21,6 +21,7 @@ typedef int16_t WORD;
 typedef int32_t DWORD;
 typedef int32_t LONG;
 
+#define IMAGE_SCN_CNT_CODE      0x00000020
 #define IMAGE_SCN_MEM_EXECUTE   0x20000000
 #define IMAGE_SCN_MEM_READ      0x40000000
 #define IMAGE_SCN_MEM_WRITE     0x80000000

@@ -22,14 +22,16 @@
 int main(int argc, char **argv)
 {
     FILE *fh;
-    char *data;
+    unsigned char *data;
     unsigned int bytes;
     long length;
     int i;
+    unsigned int address = 0;
 
     PIMAGE_DOS_HEADER dos_hdr;
     PIMAGE_NT_HEADERS nt_hdr;
     PIMAGE_SECTION_HEADER sct_hdr;
+    unsigned int ep_file_offset = 0;
 
     if (argc < 3)
     {
@@ -44,53 +46,70 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    bytes = atoi(argv[2]);
-
     fseek(fh, 0L, SEEK_END);
     length = ftell(fh);
     rewind(fh);
 
     data = malloc(length);
-    fread(data, length, 1, fh);
-    rewind(fh);
 
-    length += bytes;
+    if (fread(data, length, 1, fh) != 1)
+    {
+        fclose(fh);
+        perror("Error reading executable");
+        return 1;
+    }
+
+    rewind(fh);
 
     dos_hdr = (void *)data;
     nt_hdr = (void *)(data + dos_hdr->e_lfanew);
     sct_hdr = IMAGE_FIRST_SECTION(nt_hdr);
 
+    bytes = (abs(atoi(argv[2])) / nt_hdr->OptionalHeader.SectionAlignment + 1) * nt_hdr->OptionalHeader.SectionAlignment;
+
     for (i = 0; i < nt_hdr->FileHeader.NumberOfSections; i++)
     {
-        if (strncmp(sct_hdr->Name, "AUTO", 6) == 0)
+        if (sct_hdr->Characteristics & IMAGE_SCN_MEM_EXECUTE)
         {
-            /* give write access to original code */
+            /* give write access to original code when loaded */
             sct_hdr->Characteristics |= IMAGE_SCN_MEM_WRITE;
+
+            if (sct_hdr->VirtualAddress <= nt_hdr->OptionalHeader.AddressOfEntryPoint && sct_hdr->VirtualAddress + sct_hdr->SizeOfRawData > nt_hdr->OptionalHeader.AddressOfEntryPoint)
+            {
+                ep_file_offset = nt_hdr->OptionalHeader.AddressOfEntryPoint - sct_hdr->VirtualAddress + sct_hdr->PointerToRawData;
+            }
+        }
+
+        printf("%10s from %8d to %8d (%8d bytes), vaddr %08X\n", sct_hdr->Name, sct_hdr->PointerToRawData, sct_hdr->PointerToRawData + sct_hdr->SizeOfRawData, sct_hdr->SizeOfRawData, sct_hdr->VirtualAddress + nt_hdr->OptionalHeader.ImageBase);
+
+        if (sct_hdr->VirtualAddress >= address)
+        {
+            address = ((sct_hdr->VirtualAddress + sct_hdr->SizeOfRawData) / nt_hdr->OptionalHeader.SectionAlignment + 1) * nt_hdr->OptionalHeader.SectionAlignment;
         }
 
         sct_hdr++;
     }
 
-    sct_hdr--;
-    sct_hdr->Characteristics |= IMAGE_SCN_MEM_EXECUTE|IMAGE_SCN_MEM_READ|IMAGE_SCN_MEM_WRITE;
+    strcpy((char *)sct_hdr->Name, ".patch");
+    sct_hdr->VirtualAddress = address;
+    sct_hdr->SizeOfRawData = bytes;
+    sct_hdr->PointerToRawData = length;
+    sct_hdr->Characteristics = IMAGE_SCN_MEM_EXECUTE|IMAGE_SCN_MEM_READ|IMAGE_SCN_CNT_CODE;
 
-    printf("File offset for binary data is %d\n", sct_hdr->PointerToRawData + sct_hdr->SizeOfRawData);
+    nt_hdr->FileHeader.NumberOfSections++;
+    nt_hdr->OptionalHeader.SizeOfCode += bytes;
+    nt_hdr->OptionalHeader.SizeOfImage += bytes;
 
-    /* move stuff outta our space */
-    memcpy(data + sct_hdr->PointerToRawData + sct_hdr->SizeOfRawData, data + sct_hdr->PointerToRawData + sct_hdr->SizeOfRawData + bytes, (data + length) - (data + sct_hdr->PointerToRawData + sct_hdr->SizeOfRawData + bytes));
+    /* write jmp to loader */
+    *(data + ep_file_offset) = 0xE9;
+    *(int *)(data + ep_file_offset + 1) = sct_hdr->VirtualAddress - nt_hdr->OptionalHeader.AddressOfEntryPoint - 5;
 
-    /* initialize our new code block to INT3 */
-    memset(data + sct_hdr->PointerToRawData + sct_hdr->SizeOfRawData, 0xCC, bytes);
-
-    /* give all permissions for the memory area */
-    sct_hdr->Characteristics |= IMAGE_SCN_MEM_EXECUTE|IMAGE_SCN_MEM_READ|IMAGE_SCN_MEM_WRITE;
-
-    nt_hdr->OptionalHeader.AddressOfEntryPoint = sct_hdr->VirtualAddress + sct_hdr->SizeOfRawData;
-    sct_hdr->SizeOfRawData += bytes;
-
-    printf("New entry point at 0x%08X\n", nt_hdr->OptionalHeader.ImageBase + nt_hdr->OptionalHeader.AddressOfEntryPoint, bytes);
+    printf("%10s from %8d to %8d (%8d bytes), vaddr %08X <- you are here\n", sct_hdr->Name, sct_hdr->PointerToRawData, sct_hdr->PointerToRawData + sct_hdr->SizeOfRawData, sct_hdr->SizeOfRawData, sct_hdr->VirtualAddress + nt_hdr->OptionalHeader.ImageBase);
 
     fwrite(data, length, 1, fh);
+
+    memset(data, 0x00, bytes);
+    fwrite(data, bytes, 1, fh);
 
     free(data);
     fclose(fh);

@@ -31,7 +31,7 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    exe = fopen(argv[1], "r+");
+    exe = fopen(argv[1], "rb+");
     if (!exe)
     {
         perror("Failed to open executable file");
@@ -46,7 +46,7 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    bin = fopen(argv[3], "r");
+    bin = fopen(argv[3], "rb");
     if (!bin)
     {
         fclose(exe);

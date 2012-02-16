@@ -17,7 +17,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "extpe.h"
+#include "pe.h"
 
 int main(int argc, char **argv)
 {
@@ -32,7 +32,6 @@ int main(int argc, char **argv)
     PIMAGE_DOS_HEADER dos_hdr;
     PIMAGE_NT_HEADERS nt_hdr;
     PIMAGE_SECTION_HEADER sct_hdr;
-    unsigned int ep_file_offset = 0;
 
     if (argc < 3)
     {
@@ -91,10 +90,6 @@ int main(int argc, char **argv)
 
             /* make sure we are aligned correctly */
             length = sct_hdr->PointerToRawData + sct_hdr->SizeOfRawData;
-
-            /* write jmp to loader */
-            *(data + ep_file_offset) = 0xE9;
-            *(int *)(data + ep_file_offset + 1) = sct_hdr->VirtualAddress - nt_hdr->OptionalHeader.AddressOfEntryPoint - 5;
         }
         else
         {
@@ -102,11 +97,6 @@ int main(int argc, char **argv)
             {
                 /* give write access to original code when loaded */
                 sct_hdr->Characteristics |= IMAGE_SCN_MEM_WRITE;
-
-                if (sct_hdr->VirtualAddress <= nt_hdr->OptionalHeader.AddressOfEntryPoint && sct_hdr->VirtualAddress + sct_hdr->SizeOfRawData > nt_hdr->OptionalHeader.AddressOfEntryPoint)
-                {
-                    ep_file_offset = nt_hdr->OptionalHeader.AddressOfEntryPoint - sct_hdr->VirtualAddress + sct_hdr->PointerToRawData;
-                }
             }
 
             if (sct_hdr->PointerToRawData >= offset)
@@ -116,7 +106,7 @@ int main(int argc, char **argv)
 
             if (sct_hdr->VirtualAddress >= address)
             {
-                address = ((sct_hdr->VirtualAddress + sct_hdr->SizeOfRawData) / nt_hdr->OptionalHeader.SectionAlignment) * nt_hdr->OptionalHeader.SectionAlignment;
+                address = ((sct_hdr->VirtualAddress + sct_hdr->SizeOfRawData) / nt_hdr->OptionalHeader.SectionAlignment + 1) * nt_hdr->OptionalHeader.SectionAlignment;
             }
         }
 

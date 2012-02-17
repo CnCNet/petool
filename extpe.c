@@ -89,7 +89,12 @@ int main(int argc, char **argv)
             nt_hdr->OptionalHeader.CheckSum                 = 0x00000000; /* do I really need to recalc this? */
 
             /* make sure we are aligned correctly */
-            length = sct_hdr->PointerToRawData + sct_hdr->SizeOfRawData;
+            if (length < sct_hdr->PointerToRawData)
+            {
+                fprintf(stderr, "File is shorter than expected! PE header screwed up?\n");
+                return 1;
+            }
+            length = sct_hdr->PointerToRawData;
         }
         else
         {

@@ -80,7 +80,7 @@ int main(int argc, char **argv)
         {
             char *dot;
             strcpy(inc_path, patch_path);
-            dot = rindex(inc_path, '.');
+            dot = strrchr(inc_path, '.');
             if (dot)
                 *dot = '\0';
             strcat(inc_path, ".inc");

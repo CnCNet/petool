@@ -23,7 +23,7 @@ int main(int argc, char **argv)
 {
     FILE *fh;
     unsigned char *data;
-    unsigned int bytes;
+    unsigned int bytes = 0;
     long length;
     int i;
     unsigned int address = 0;
@@ -33,9 +33,9 @@ int main(int argc, char **argv)
     PIMAGE_NT_HEADERS nt_hdr;
     PIMAGE_SECTION_HEADER sct_hdr;
 
-    if (argc < 3)
+    if (argc < 2)
     {
-        fprintf(stderr, "usage: %s <executable> <bytes>\n", argv[0]);
+        fprintf(stderr, "usage: %s <executable> [bytes]\n", argv[0]);
         return 1;
     }
 
@@ -65,7 +65,12 @@ int main(int argc, char **argv)
     nt_hdr = (void *)(data + dos_hdr->e_lfanew);
     sct_hdr = IMAGE_FIRST_SECTION(nt_hdr);
 
-    bytes = (abs(atoi(argv[2])) / nt_hdr->OptionalHeader.SectionAlignment + 1) * nt_hdr->OptionalHeader.SectionAlignment;
+    if (argc > 2)
+    {
+        bytes = abs(atoi(argv[2]));
+    }
+    if (bytes < 1) bytes = 1;
+    bytes = (bytes / nt_hdr->OptionalHeader.SectionAlignment + (bytes % nt_hdr->OptionalHeader.SectionAlignment ? 1 : 0)) * nt_hdr->OptionalHeader.SectionAlignment;
 
     printf("   section    start      end   length    vaddr flg\n");
     printf("--------------------------------------------------\n");
@@ -111,7 +116,7 @@ int main(int argc, char **argv)
 
             if (sct_hdr->VirtualAddress >= address)
             {
-                address = ((sct_hdr->VirtualAddress + sct_hdr->SizeOfRawData) / nt_hdr->OptionalHeader.SectionAlignment + 1) * nt_hdr->OptionalHeader.SectionAlignment;
+                address = ((sct_hdr->VirtualAddress + sct_hdr->SizeOfRawData) / nt_hdr->OptionalHeader.SectionAlignment + ((sct_hdr->VirtualAddress + sct_hdr->SizeOfRawData) % nt_hdr->OptionalHeader.SectionAlignment ? 1 : 0)) * nt_hdr->OptionalHeader.SectionAlignment;
             }
         }
 

@@ -27,7 +27,6 @@ int main(int argc, char **argv)
     long length;
     int i;
     unsigned int address = 0;
-    unsigned int offset = 0;
 
     PIMAGE_DOS_HEADER dos_hdr;
     PIMAGE_NT_HEADERS nt_hdr;
@@ -85,21 +84,13 @@ int main(int argc, char **argv)
             sct_hdr->Misc.VirtualSize = bytes;
             sct_hdr->VirtualAddress = address;
             sct_hdr->SizeOfRawData = bytes;
-            sct_hdr->PointerToRawData = offset;
+            sct_hdr->PointerToRawData = length;
             sct_hdr->Characteristics = IMAGE_SCN_MEM_READ|IMAGE_SCN_MEM_WRITE|IMAGE_SCN_MEM_EXECUTE|IMAGE_SCN_CNT_CODE;
 
             nt_hdr->OptionalHeader.SizeOfCode               += bytes;
             nt_hdr->OptionalHeader.SizeOfImage              += bytes;
             nt_hdr->OptionalHeader.SizeOfInitializedData    += bytes;
             nt_hdr->OptionalHeader.CheckSum                 = 0x00000000; /* do I really need to recalc this? */
-
-            /* make sure we are aligned correctly */
-            if (length < sct_hdr->PointerToRawData)
-            {
-                fprintf(stderr, "File is shorter than expected! PE header screwed up?\n");
-                return 1;
-            }
-            length = sct_hdr->PointerToRawData;
         }
         else
         {
@@ -107,11 +98,6 @@ int main(int argc, char **argv)
             {
                 /* give write access to original code when loaded */
                 sct_hdr->Characteristics |= IMAGE_SCN_MEM_WRITE;
-            }
-
-            if (sct_hdr->PointerToRawData >= offset)
-            {
-                offset = sct_hdr->PointerToRawData + sct_hdr->SizeOfRawData;
             }
 
             if (sct_hdr->VirtualAddress >= address)

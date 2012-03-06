@@ -43,7 +43,6 @@ int main(int argc, char **argv)
     hooks = fopen(argv[1], "rb");
     if (!hooks)
     {
-        fclose(hooks);
         perror("hooker: failed to open hooks file");
         return 1;
     }
@@ -51,6 +50,7 @@ int main(int argc, char **argv)
     exe = fopen(argv[2], "rb+");
     if (!exe)
     {
+        fclose(hooks);
         perror("hooker: failed to open executable file");
         return 1;
     }

@@ -436,9 +436,10 @@ int main(int argc, char **argv)
         }
         else if (strcmp(ann->type, "clear") == 0 && ann->argc >= 3)
         {
-            unsigned int address = strtol(ann->argv[0], NULL, 0);
+            unsigned int from = strtol(ann->argv[0], NULL, 0);
             unsigned int character = strtol(ann->argv[1], NULL, 0);
-            unsigned int length = strtol(ann->argv[2], NULL, 0);
+            unsigned int to = strtol(ann->argv[2], NULL, 0);
+            unsigned int length = to - from;
             char *zbuf = malloc(length);
 
             if (!zbuf)
@@ -449,15 +450,15 @@ int main(int argc, char **argv)
 
             memset(zbuf, (char)character, length);
 
-            if (!patch_image(exe_data, address, zbuf, length))
+            if (!patch_image(exe_data, from, zbuf, length))
             {
-                fprintf(stderr, "linker: memory address 0x%08X not found in %s\r\n", (unsigned int)address, exe_name);
+                fprintf(stderr, "linker: memory address 0x%08X not found in %s\r\n", (unsigned int)from, exe_name);
                 return 1;
             }
 
             free(zbuf);
 
-            printf("CLEAR  %8d bytes -> %8X\r\n", length, address);
+            printf("CLEAR  %8d bytes -> %8X\r\n", length, from);
         }
         else
         {

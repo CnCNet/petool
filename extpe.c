@@ -71,8 +71,8 @@ int main(int argc, char **argv)
     if (bytes < 1) bytes = 1;
     bytes = (bytes / nt_hdr->OptionalHeader.SectionAlignment + (bytes % nt_hdr->OptionalHeader.SectionAlignment ? 1 : 0)) * nt_hdr->OptionalHeader.SectionAlignment;
 
-    printf("   section    start      end   length    vaddr flg\n");
-    printf("--------------------------------------------------\n");
+    printf("   section    start      end   length    vaddr  flags\n");
+    printf("-----------------------------------------------------\n");
 
     nt_hdr->FileHeader.NumberOfSections++;
 
@@ -94,27 +94,24 @@ int main(int argc, char **argv)
         }
         else
         {
-            if (sct_hdr->Characteristics & IMAGE_SCN_MEM_EXECUTE)
-            {
-                /* give write access to original code when loaded */
-                sct_hdr->Characteristics |= IMAGE_SCN_MEM_WRITE;
-            }
-
             if (sct_hdr->VirtualAddress >= address)
             {
                 address = ((sct_hdr->VirtualAddress + sct_hdr->SizeOfRawData) / nt_hdr->OptionalHeader.SectionAlignment + ((sct_hdr->VirtualAddress + sct_hdr->SizeOfRawData) % nt_hdr->OptionalHeader.SectionAlignment ? 1 : 0)) * nt_hdr->OptionalHeader.SectionAlignment;
             }
         }
 
-        printf("%10s %8d %8d %8d %8X %s%s%s %s\n",
+        printf("%10s %8d %8d %8d %8X %s%s%s%s%s%s %s\n",
                 sct_hdr->Name,
                 sct_hdr->PointerToRawData,
                 sct_hdr->PointerToRawData + sct_hdr->SizeOfRawData,
                 sct_hdr->SizeOfRawData,
                 sct_hdr->VirtualAddress + nt_hdr->OptionalHeader.ImageBase,
-                sct_hdr->Characteristics & IMAGE_SCN_MEM_READ       ? "r" : "-",
-                sct_hdr->Characteristics & IMAGE_SCN_MEM_WRITE      ? "w" : "-",
-                sct_hdr->Characteristics & IMAGE_SCN_MEM_EXECUTE    ? "x" : "-",
+                sct_hdr->Characteristics & IMAGE_SCN_MEM_READ               ? "r" : "-",
+                sct_hdr->Characteristics & IMAGE_SCN_MEM_WRITE              ? "w" : "-",
+                sct_hdr->Characteristics & IMAGE_SCN_MEM_EXECUTE            ? "x" : "-",
+                sct_hdr->Characteristics & IMAGE_SCN_CNT_CODE               ? "c" : "-",
+                sct_hdr->Characteristics & IMAGE_SCN_CNT_INITIALIZED_DATA   ? "i" : "-",
+                sct_hdr->Characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA ? "u" : "-",
                 i == nt_hdr->FileHeader.NumberOfSections - 1        ? "<- you are here" : ""
         );
 

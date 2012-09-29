@@ -37,7 +37,7 @@ char *read_stream(FILE *stream)
 
     if ((buf = malloc(len + 1)) == NULL)
     {
-        fprintf(stderr, "malloc: out of memory\r\n");
+        fprintf(stderr, "malloc: out of memory\n");
         return NULL;
     }
 
@@ -50,7 +50,7 @@ char *read_stream(FILE *stream)
             len += 1024;
             if ((buf = realloc(buf, len + 1)) == NULL)
             {
-                fprintf(stderr, "realloc: out of memory\r\n");
+                fprintf(stderr, "realloc: out of memory\n");
                 return NULL;
             }
         }
@@ -232,7 +232,7 @@ int main(int argc, char **argv)
 
     if (argc < 3)
     {
-        fprintf(stderr, "usage: %s <source file> <out include file> <target executable> [nasm [nasm flags]]\r\n", argv[0]);
+        fprintf(stderr, "usage: %s <source file> <out include file> <target executable> [nasm [nasm flags]]\n", argv[0]);
         return 1;
     }
 
@@ -260,7 +260,7 @@ int main(int argc, char **argv)
 
     if ((fh = popen(buf, "r")) == NULL)
     {
-        fprintf(stderr, "%s\r\n", buf);
+        fprintf(stderr, "%s\n", buf);
         perror(nasm);
         return 1;
     }
@@ -289,7 +289,7 @@ int main(int argc, char **argv)
 
     if ((fh = popen(buf, "r")) == NULL)
     {
-        fprintf(stderr, "%s\r\n", buf);
+        fprintf(stderr, "%s\n", buf);
         perror(nasm);
         unlink(tmp_name);
         return 1;
@@ -336,7 +336,7 @@ int main(int argc, char **argv)
 
     if (!address)
     {
-        fprintf(stderr, "linker: ORG not found in map\r\n");
+        fprintf(stderr, "linker: ORG not found in map\n");
         return 1;
     }
 
@@ -391,11 +391,11 @@ int main(int argc, char **argv)
 
     if (!patch_image(exe_data, (unsigned int)address, patch_data, patch_length))
     {
-        fprintf(stderr, "linker: memory address 0x%08X not found in %s\r\n", (unsigned int)address, exe_name);
+        fprintf(stderr, "linker: memory address 0x%08X not found in %s\n", (unsigned int)address, exe_name);
         return 1;
     }
 
-    printf("PATCH  %8d bytes -> %8X\r\n", patch_length, address);
+    printf("PATCH  %8d bytes -> %8X\n", patch_length, address);
 
     /* create annotation patches */
     for (i = 0; i < 512; i++)
@@ -415,11 +415,11 @@ int main(int argc, char **argv)
                 *(signed char *)(buf + 1) = to - from - 2;
                 if (!patch_image(exe_data, from, buf, sizeof buf))
                 {
-                    fprintf(stderr, "linker: memory address 0x%08X not found in %s\r\n", (unsigned int)address, exe_name);
+                    fprintf(stderr, "linker: memory address 0x%08X not found in %s\n", (unsigned int)address, exe_name);
                     return 1;
                 }
 
-                printf("%-12s %8X -> %8X\r\n", "JMP SHORT", from, to);
+                printf("%-12s %8X -> %8X\n", "JMP SHORT", from, to);
             }
             else
             {
@@ -427,11 +427,11 @@ int main(int argc, char **argv)
                 *(signed int *)(buf + 1) = to - from - 5;
                 if (!patch_image(exe_data, from, buf, sizeof buf))
                 {
-                    fprintf(stderr, "linker: memory address 0x%08X not found in %s\r\n", (unsigned int)address, exe_name);
+                    fprintf(stderr, "linker: memory address 0x%08X not found in %s\n", (unsigned int)address, exe_name);
                     return 1;
                 }
 
-                printf("%-12s %8X -> %8X\r\n", "JMP", from, to);
+                printf("%-12s %8X -> %8X\n", "JMP", from, to);
             }
         }
         else if (strcmp(ann->type, "clear") == 0 && ann->argc >= 3)
@@ -444,7 +444,7 @@ int main(int argc, char **argv)
 
             if (!zbuf)
             {
-                fprintf(stderr, "linker: out of memory when allocating %d for zbuf\r\n", length);
+                fprintf(stderr, "linker: out of memory when allocating %d for zbuf\n", length);
                 return 1;
             }
 
@@ -452,17 +452,17 @@ int main(int argc, char **argv)
 
             if (!patch_image(exe_data, from, zbuf, length))
             {
-                fprintf(stderr, "linker: memory address 0x%08X not found in %s\r\n", (unsigned int)from, exe_name);
+                fprintf(stderr, "linker: memory address 0x%08X not found in %s\n", (unsigned int)from, exe_name);
                 return 1;
             }
 
             free(zbuf);
 
-            printf("CLEAR  %8d bytes -> %8X\r\n", length, from);
+            printf("CLEAR  %8d bytes -> %8X\n", length, from);
         }
         else
         {
-            fprintf(stderr, "linker: warning: unknown annotation \"%s\"\r\n", ann->type);
+            fprintf(stderr, "linker: warning: unknown annotation \"%s\"\n", ann->type);
         }
     }
 

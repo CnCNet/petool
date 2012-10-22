@@ -317,7 +317,7 @@ int main(int argc, char **argv)
         if (address == 0)
             sscanf(l, "%X", &address);
 
-        if (strstr(l, "Symbols"))
+        if (strstr(l, "Section .text"))
             i = 1;
 
         if (i && sscanf(l, "%*X %X  %s", &a, label) == 2)
@@ -374,6 +374,14 @@ int main(int argc, char **argv)
     fseek(patch, 0L, SEEK_END);
     patch_length = ftell(patch);
     rewind(patch);
+
+    /* ignore empty patches */
+    if (patch_length == 0)
+    {
+        free(exe_data);
+        fclose(exe);
+        return 0;
+    }
 
     patch_data = malloc(patch_length);
 

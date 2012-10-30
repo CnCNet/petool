@@ -412,7 +412,7 @@ int main(int argc, char **argv)
         if (ann->type == NULL)
             break;
 
-        if (strcmp(ann->type, "hook") == 0 && ann->argc >= 2)
+        if ((strcmp(ann->type, "hook") == 0 || strcmp(ann->type, "jmp") == 0) && ann->argc >= 2)
         {
             unsigned int from = strtol(ann->argv[0], NULL, 0);
             unsigned int to = strtol(ann->argv[1], NULL, 0);
@@ -441,6 +441,20 @@ int main(int argc, char **argv)
 
                 printf("%-12s %8X -> %8X\n", "JMP", from, to);
             }
+        }
+        else if (strcmp(ann->type, "call") == 0 && ann->argc >= 2)
+        {
+            unsigned int from = strtol(ann->argv[0], NULL, 0);
+            unsigned int to = strtol(ann->argv[1], NULL, 0);
+            unsigned char buf[] = { 0xE8, 0x00, 0x00, 0x00, 0x00 };
+            *(signed int *)(buf + 1) = to - from - 5;
+            if (!patch_image(exe_data, from, buf, sizeof buf))
+            {
+                fprintf(stderr, "linker: memory address 0x%08X not found in %s\n", (unsigned int)address, exe_name);
+                return 1;
+            }
+
+            printf("%-12s %8X -> %8X\n", "CALL", from, to);
         }
         else if (strcmp(ann->type, "clear") == 0 && ann->argc >= 3)
         {

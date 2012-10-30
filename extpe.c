@@ -41,6 +41,7 @@ int main(int argc, char **argv)
 
     if (argc < 5)
     {
+        fprintf(stderr, "extpe for ra303p git~%s (c) 2012 Toni Spets\n\n", REV);
         fprintf(stderr, "usage: %s <executable> <section name> <flags: rwxciu> <size>\n", argv[0]);
         return 1;
     }

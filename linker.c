@@ -232,6 +232,7 @@ int main(int argc, char **argv)
 
     if (argc < 3)
     {
+        fprintf(stderr, "linker for ra303p git~%s (c) 2012 Toni Spets\n\n", REV);
         fprintf(stderr, "usage: %s <source file> <out include file> <target executable> [nasm [nasm flags]]\n", argv[0]);
         return 1;
     }

@@ -253,7 +253,9 @@ int main(int argc, char **argv)
         for (; i < argc; i++)
         {
             strncat(nasm_flags, " ", sizeof nasm_flags);
+            strncat(nasm_flags, "\'", sizeof nasm_flags);    // begin quote
             strncat(nasm_flags, argv[i], sizeof nasm_flags);
+            strncat(nasm_flags, "\'", sizeof nasm_flags);    // end quote
         }
     }
 

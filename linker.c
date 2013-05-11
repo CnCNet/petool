@@ -413,26 +413,56 @@ int main(int argc, char **argv)
         if (ann->type == NULL)
             break;
 
-        if ((strcmp(ann->type, "hook") == 0 || strcmp(ann->type, "jmp") == 0) && ann->argc >= 2)
+        if ((strcmp(ann->type, "hook") == 0 || strcmp(ann->type, "jmp") == 0))
         {
-            unsigned int from = strtol(ann->argv[0], NULL, 0);
-            unsigned int to = strtol(ann->argv[1], NULL, 0);
-
-            if (abs(to - from) < 128)
+            if (ann->argc < 2)
             {
-                unsigned char buf[] = { 0xEB, 0x00 };
-                *(signed char *)(buf + 1) = to - from - 2;
-                if (!patch_image(exe_data, from, buf, sizeof buf))
-                {
-                    fprintf(stderr, "linker: memory address 0x%08X not found in %s\n", (unsigned int)address, exe_name);
-                    return 1;
-                }
-
-                printf("%-12s %8X -> %8X\n", "JMP SHORT", from, to);
+                fprintf(stderr, "linker: JMP requires two arguments\n");
+                return 1;
             }
             else
             {
-                unsigned char buf[] = { 0xE9, 0x00, 0x00, 0x00, 0x00 };
+                unsigned int from = strtol(ann->argv[0], NULL, 0);
+                unsigned int to = strtol(ann->argv[1], NULL, 0);
+
+                if (abs(to - from) < 128)
+                {
+                    unsigned char buf[] = { 0xEB, 0x00 };
+                    *(signed char *)(buf + 1) = to - from - 2;
+                    if (!patch_image(exe_data, from, buf, sizeof buf))
+                    {
+                        fprintf(stderr, "linker: memory address 0x%08X not found in %s\n", (unsigned int)address, exe_name);
+                        return 1;
+                    }
+
+                    printf("%-12s %8X -> %8X\n", "JMP SHORT", from, to);
+                }
+                else
+                {
+                    unsigned char buf[] = { 0xE9, 0x00, 0x00, 0x00, 0x00 };
+                    *(signed int *)(buf + 1) = to - from - 5;
+                    if (!patch_image(exe_data, from, buf, sizeof buf))
+                    {
+                        fprintf(stderr, "linker: memory address 0x%08X not found in %s\n", (unsigned int)address, exe_name);
+                        return 1;
+                    }
+
+                    printf("%-12s %8X -> %8X\n", "JMP", from, to);
+                }
+            }
+        }
+        else if (strcmp(ann->type, "call") == 0)
+        {
+            if (ann->argc < 2)
+            {
+                fprintf(stderr, "linker: CALL requires two arguments\n");
+                return 1;
+            }
+            else
+            {
+                unsigned int from = strtol(ann->argv[0], NULL, 0);
+                unsigned int to = strtol(ann->argv[1], NULL, 0);
+                unsigned char buf[] = { 0xE8, 0x00, 0x00, 0x00, 0x00 };
                 *(signed int *)(buf + 1) = to - from - 5;
                 if (!patch_image(exe_data, from, buf, sizeof buf))
                 {
@@ -440,48 +470,147 @@ int main(int argc, char **argv)
                     return 1;
                 }
 
-                printf("%-12s %8X -> %8X\n", "JMP", from, to);
+                printf("%-12s %8X -> %8X\n", "CALL", from, to);
             }
         }
-        else if (strcmp(ann->type, "call") == 0 && ann->argc >= 2)
+        else if (strcmp(ann->type, "clear") == 0)
         {
-            unsigned int from = strtol(ann->argv[0], NULL, 0);
-            unsigned int to = strtol(ann->argv[1], NULL, 0);
-            unsigned char buf[] = { 0xE8, 0x00, 0x00, 0x00, 0x00 };
-            *(signed int *)(buf + 1) = to - from - 5;
-            if (!patch_image(exe_data, from, buf, sizeof buf))
+            if (ann->argc < 3)
             {
-                fprintf(stderr, "linker: memory address 0x%08X not found in %s\n", (unsigned int)address, exe_name);
+                fprintf(stderr, "linker: CLEAR requires three arguments\n");
                 return 1;
             }
+            else
+            {
+                unsigned int from = strtol(ann->argv[0], NULL, 0);
+                unsigned int character = strtol(ann->argv[1], NULL, 0);
+                unsigned int to = strtol(ann->argv[2], NULL, 0);
+                unsigned int length = to - from;
+                char *zbuf = malloc(length);
 
-            printf("%-12s %8X -> %8X\n", "CALL", from, to);
+                if (!zbuf)
+                {
+                    fprintf(stderr, "linker: out of memory when allocating %d for zbuf\n", length);
+                    return 1;
+                }
+
+                memset(zbuf, (char)character, length);
+
+                if (!patch_image(exe_data, from, zbuf, length))
+                {
+                    fprintf(stderr, "linker: memory address 0x%08X not found in %s\n", (unsigned int)from, exe_name);
+                    return 1;
+                }
+
+                free(zbuf);
+
+                printf("CLEAR  %8d bytes -> %8X\n", length, from);
+            }
         }
-        else if (strcmp(ann->type, "clear") == 0 && ann->argc >= 3)
+        else if (strcmp(ann->type, "setb") == 0)
         {
-            unsigned int from = strtol(ann->argv[0], NULL, 0);
-            unsigned int character = strtol(ann->argv[1], NULL, 0);
-            unsigned int to = strtol(ann->argv[2], NULL, 0);
-            unsigned int length = to - from;
-            char *zbuf = malloc(length);
-
-            if (!zbuf)
+            if (ann->argc < 2)
             {
-                fprintf(stderr, "linker: out of memory when allocating %d for zbuf\n", length);
+                fprintf(stderr, "linker: SETB requires at least two arguments\n");
                 return 1;
             }
-
-            memset(zbuf, (char)character, length);
-
-            if (!patch_image(exe_data, from, zbuf, length))
+            else
             {
-                fprintf(stderr, "linker: memory address 0x%08X not found in %s\n", (unsigned int)from, exe_name);
+                int i;
+                unsigned int address = strtol(ann->argv[0], NULL, 0);
+                unsigned int length = ann->argc - 1;
+                char *buf = malloc(length);
+
+                if (!buf)
+                {
+                    fprintf(stderr, "linker: out of memory when allocating %d for SETB buf\n", length);
+                    return 1;
+                }
+
+                for (i = 1; i < ann->argc; i++) {
+                    buf[i-1] = (char)strtol(ann->argv[i], NULL, 0);
+                }
+
+                if (!patch_image(exe_data, address, buf, length))
+                {
+                    fprintf(stderr, "linker: memory address 0x%08X not found in %s\n", address, exe_name);
+                    return 1;
+                }
+
+                free(buf);
+
+                printf("SETB   %8d bytes -> %8X\n", length, address);
+            }
+        }
+        else if (strcmp(ann->type, "setw") == 0)
+        {
+            if (ann->argc < 2)
+            {
+                fprintf(stderr, "linker: SETW requires at least two arguments\n");
                 return 1;
             }
+            else
+            {
+                int i;
+                unsigned int address = strtol(ann->argv[0], NULL, 0);
+                unsigned int length = (ann->argc - 1) * 2;
+                short *buf = malloc(length);
 
-            free(zbuf);
+                if (!buf)
+                {
+                    fprintf(stderr, "linker: out of memory when allocating %d for SETW buf\n", length);
+                    return 1;
+                }
 
-            printf("CLEAR  %8d bytes -> %8X\n", length, from);
+                for (i = 1; i < ann->argc; i++) {
+                    buf[i-1] = (short)strtol(ann->argv[i], NULL, 0);
+                }
+
+                if (!patch_image(exe_data, address, buf, length))
+                {
+                    fprintf(stderr, "linker: memory address 0x%08X not found in %s\n", address, exe_name);
+                    return 1;
+                }
+
+                free(buf);
+
+                printf("SETW   %8d bytes -> %8X\n", length, address);
+            }
+        }
+        else if (strcmp(ann->type, "setd") == 0)
+        {
+            if (ann->argc < 2)
+            {
+                fprintf(stderr, "linker: SETD requires at least two arguments\n");
+                return 1;
+            }
+            else
+            {
+                int i;
+                unsigned int address = strtol(ann->argv[0], NULL, 0);
+                unsigned int length = (ann->argc - 1) * 4;
+                int *buf = malloc(length);
+
+                if (!buf)
+                {
+                    fprintf(stderr, "linker: out of memory when allocating %d for SETD buf\n", length);
+                    return 1;
+                }
+
+                for (i = 1; i < ann->argc; i++) {
+                    buf[i-1] = (int)strtol(ann->argv[i], NULL, 0);
+                }
+
+                if (!patch_image(exe_data, address, buf, length))
+                {
+                    fprintf(stderr, "linker: memory address 0x%08X not found in %s\n", address, exe_name);
+                    return 1;
+                }
+
+                free(buf);
+
+                printf("SETW   %8d bytes -> %8X\n", length, address);
+            }
         }
         else
         {

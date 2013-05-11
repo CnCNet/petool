@@ -1,4 +1,3 @@
-TOOLS_DIR ?= .
 BUILD_DIR ?= .
 
 REV        = $(shell sh -c 'git rev-parse --short @{0}')
@@ -7,13 +6,13 @@ CFLAGS     = -m32 -pedantic -O2 -Wall -DREV=\"$(REV)\"
 
 tools: $(BUILD_DIR)/linker$(EXT) $(BUILD_DIR)/extpe$(EXT)
 
-$(BUILD_DIR)/linker$(EXT): $(TOOLS_DIR)/linker.c
+$(BUILD_DIR)/linker$(EXT): linker.c
 	$(CC) $(CFLAGS) -o $@ $<
 
-$(BUILD_DIR)/extpe$(EXT): $(TOOLS_DIR)/extpe.c $(TOOLS_DIR)/pe.h
+$(BUILD_DIR)/extpe$(EXT): extpe.c pe.h
 	$(CC) $(CFLAGS) -o $@ $<
 
-clean_tools:
+clean:
 	rm -rf $(BUILD_DIR)/linker$(EXT) $(BUILD_DIR)/extpe$(EXT)
 
-.PHONY: tools clean_tools
+.PHONY: tools clean

@@ -33,6 +33,7 @@ int main(int argc, char **argv)
     int i;
     unsigned int address = 0;
     unsigned int flags = 0;
+    unsigned int first_ptr = -1;
     char *name = NULL;
 
     PIMAGE_DOS_HEADER dos_hdr;
@@ -104,6 +105,12 @@ int main(int argc, char **argv)
     {
         if (i == nt_hdr->FileHeader.NumberOfSections - 1)
         {
+            if (((char *)sct_hdr + sizeof(*sct_hdr) - (char *)data) >= first_ptr)
+            {
+                fprintf(stderr, "Error: new section would overflow image data!\n");
+                return 1;
+            }
+
             /* for once, strncpy is useful */
             strncpy((char *)sct_hdr->Name, name, 8);
             sct_hdr->Misc.VirtualSize = bytes;
@@ -131,6 +138,11 @@ int main(int argc, char **argv)
             if (sct_hdr->VirtualAddress >= address)
             {
                 address = sct_hdr->VirtualAddress + bytealign(sct_hdr->Misc.VirtualSize ? sct_hdr->Misc.VirtualSize : sct_hdr->SizeOfRawData, nt_hdr->OptionalHeader.SectionAlignment);
+            }
+
+            if (sct_hdr->PointerToRawData > 0 && sct_hdr->PointerToRawData < first_ptr)
+            {
+                first_ptr = sct_hdr->PointerToRawData;
             }
         }
 

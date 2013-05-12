@@ -34,7 +34,7 @@ int main(int argc, char **argv)
 
     if (argc < 4)
     {
-        fprintf(stderr, "modpe for ra303p git~%s (c) 2013 Toni Spets\n\n", REV);
+        fprintf(stderr, "nasm-patcher modpe git~%s (c) 2012-2013 Toni Spets\n\n", REV);
         fprintf(stderr, "usage: %s <executable> <section name> <flags: rwxciu>\n", argv[0]);
         return 1;
     }

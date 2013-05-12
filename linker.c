@@ -192,6 +192,12 @@ int patch_image(void *image, unsigned int address, void *patch, int length)
         {
             unsigned int offset = sct_hdr->PointerToRawData + (address - (sct_hdr->VirtualAddress + nt_hdr->OptionalHeader.ImageBase));
 
+            if (sct_hdr->SizeOfRawData < length)
+            {
+                fprintf(stderr, "Error: section length (%d) is less than patch length (%d), maybe expand the image a bit more?\n", sct_hdr->SizeOfRawData, length);
+                return 0;
+            }
+
             memcpy((char *)image + offset, patch, length);
 
             return 1;
@@ -200,6 +206,7 @@ int patch_image(void *image, unsigned int address, void *patch, int length)
         sct_hdr++;
     }
 
+    fprintf(stderr, "Error: memory address %08X not found in image\n", address);
     return 0;
 }
 
@@ -399,10 +406,7 @@ int main(int argc, char **argv)
     unlink(out_name);
 
     if (!patch_image(exe_data, (unsigned int)address, patch_data, patch_length))
-    {
-        fprintf(stderr, "linker: memory address 0x%08X not found in %s\n", (unsigned int)address, exe_name);
         return 1;
-    }
 
     printf("PATCH  %8d bytes -> %8X\n", patch_length, address);
 
@@ -430,10 +434,7 @@ int main(int argc, char **argv)
                     unsigned char buf[] = { 0xEB, 0x00 };
                     *(signed char *)(buf + 1) = to - from - 2;
                     if (!patch_image(exe_data, from, buf, sizeof buf))
-                    {
-                        fprintf(stderr, "linker: memory address 0x%08X not found in %s\n", (unsigned int)address, exe_name);
                         return 1;
-                    }
 
                     printf("%-12s %8X -> %8X\n", "JMP SHORT", from, to);
                 }
@@ -442,10 +443,7 @@ int main(int argc, char **argv)
                     unsigned char buf[] = { 0xE9, 0x00, 0x00, 0x00, 0x00 };
                     *(signed int *)(buf + 1) = to - from - 5;
                     if (!patch_image(exe_data, from, buf, sizeof buf))
-                    {
-                        fprintf(stderr, "linker: memory address 0x%08X not found in %s\n", (unsigned int)address, exe_name);
                         return 1;
-                    }
 
                     printf("%-12s %8X -> %8X\n", "JMP", from, to);
                 }
@@ -465,10 +463,7 @@ int main(int argc, char **argv)
                 unsigned char buf[] = { 0xE8, 0x00, 0x00, 0x00, 0x00 };
                 *(signed int *)(buf + 1) = to - from - 5;
                 if (!patch_image(exe_data, from, buf, sizeof buf))
-                {
-                    fprintf(stderr, "linker: memory address 0x%08X not found in %s\n", (unsigned int)address, exe_name);
                     return 1;
-                }
 
                 printf("%-12s %8X -> %8X\n", "CALL", from, to);
             }
@@ -497,10 +492,7 @@ int main(int argc, char **argv)
                 memset(zbuf, (char)character, length);
 
                 if (!patch_image(exe_data, from, zbuf, length))
-                {
-                    fprintf(stderr, "linker: memory address 0x%08X not found in %s\n", (unsigned int)from, exe_name);
                     return 1;
-                }
 
                 free(zbuf);
 
@@ -532,10 +524,7 @@ int main(int argc, char **argv)
                 }
 
                 if (!patch_image(exe_data, address, buf, length))
-                {
-                    fprintf(stderr, "linker: memory address 0x%08X not found in %s\n", address, exe_name);
                     return 1;
-                }
 
                 free(buf);
 
@@ -567,10 +556,7 @@ int main(int argc, char **argv)
                 }
 
                 if (!patch_image(exe_data, address, buf, length))
-                {
-                    fprintf(stderr, "linker: memory address 0x%08X not found in %s\n", address, exe_name);
                     return 1;
-                }
 
                 free(buf);
 
@@ -602,10 +588,7 @@ int main(int argc, char **argv)
                 }
 
                 if (!patch_image(exe_data, address, buf, length))
-                {
-                    fprintf(stderr, "linker: memory address 0x%08X not found in %s\n", address, exe_name);
                     return 1;
-                }
 
                 free(buf);
 

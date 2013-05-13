@@ -510,7 +510,7 @@ int main(int argc, char **argv)
             {
                 int i;
                 unsigned int address = strtol(ann->argv[0], NULL, 0);
-                unsigned int length = ann->argc - 1;
+                unsigned int length = ann->argc - sizeof(char);
                 char *buf = malloc(length);
 
                 if (!buf)
@@ -542,7 +542,7 @@ int main(int argc, char **argv)
             {
                 int i;
                 unsigned int address = strtol(ann->argv[0], NULL, 0);
-                unsigned int length = (ann->argc - 1) * 2;
+                unsigned int length = (ann->argc - 1) * sizeof(short);
                 short *buf = malloc(length);
 
                 if (!buf)
@@ -574,7 +574,7 @@ int main(int argc, char **argv)
             {
                 int i;
                 unsigned int address = strtol(ann->argv[0], NULL, 0);
-                unsigned int length = (ann->argc - 1) * 4;
+                unsigned int length = (ann->argc - 1) * sizeof(int);
                 int *buf = malloc(length);
 
                 if (!buf)
@@ -592,7 +592,103 @@ int main(int argc, char **argv)
 
                 free(buf);
 
-                printf("SETW   %8d bytes -> %8X\n", length, address);
+                printf("SETD   %8d bytes -> %8X\n", length, address);
+            }
+        }
+        else if (strcmp(ann->type, "setq") == 0)
+        {
+            if (ann->argc < 2)
+            {
+                fprintf(stderr, "linker: SETQ requires at least two arguments\n");
+                return 1;
+            }
+            else
+            {
+                int i;
+                unsigned int address = strtol(ann->argv[0], NULL, 0);
+                unsigned int length = (ann->argc - 1) * sizeof(long long int);
+                long long int *buf = malloc(length);
+
+                if (!buf)
+                {
+                    fprintf(stderr, "linker: out of memory when allocating %d for SETQ buf\n", length);
+                    return 1;
+                }
+
+                for (i = 1; i < ann->argc; i++) {
+                    buf[i-1] = strtoll(ann->argv[i], NULL, 0);
+                }
+
+                if (!patch_image(exe_data, address, buf, length))
+                    return 1;
+
+                free(buf);
+
+                printf("SETQ   %8d bytes -> %8X\n", length, address);
+            }
+        }
+        else if (strcmp(ann->type, "setf") == 0)
+        {
+            if (ann->argc < 2)
+            {
+                fprintf(stderr, "linker: SETF requires at least two arguments\n");
+                return 1;
+            }
+            else
+            {
+                int i;
+                unsigned int address = strtol(ann->argv[0], NULL, 0);
+                unsigned int length = (ann->argc - 1) * sizeof(float);
+                float *buf = malloc(length);
+
+                if (!buf)
+                {
+                    fprintf(stderr, "linker: out of memory when allocating %d for SETF buf\n", length);
+                    return 1;
+                }
+
+                for (i = 1; i < ann->argc; i++) {
+                    buf[i-1] = strtof(ann->argv[i], NULL);
+                }
+
+                if (!patch_image(exe_data, address, buf, length))
+                    return 1;
+
+                free(buf);
+
+                printf("SETF   %8d bytes -> %8X\n", length, address);
+            }
+        }
+        else if (strcmp(ann->type, "setdf") == 0)
+        {
+            if (ann->argc < 2)
+            {
+                fprintf(stderr, "linker: SETDF requires at least two arguments\n");
+                return 1;
+            }
+            else
+            {
+                int i;
+                unsigned int address = strtol(ann->argv[0], NULL, 0);
+                unsigned int length = (ann->argc - 1) * sizeof(double);
+                double *buf = malloc(length);
+
+                if (!buf)
+                {
+                    fprintf(stderr, "linker: out of memory when allocating %d for SETDF buf\n", length);
+                    return 1;
+                }
+
+                for (i = 1; i < ann->argc; i++) {
+                    buf[i-1] = strtod(ann->argv[i], NULL);
+                }
+
+                if (!patch_image(exe_data, address, buf, length))
+                    return 1;
+
+                free(buf);
+
+                printf("SETDF  %8d bytes -> %8X\n", length, address);
             }
         }
         else

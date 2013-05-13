@@ -2,7 +2,7 @@ BUILD_DIR ?= .
 
 REV        = $(shell sh -c 'git rev-parse --short @{0}')
 CC        ?= gcc
-CFLAGS     = -m32 -pedantic -O2 -Wall -DREV=\"$(REV)\"
+CFLAGS     = -std=gnu99 -m32 -pedantic -O2 -Wall -DREV=\"$(REV)\"
 
 tools: $(BUILD_DIR)/linker$(EXT) $(BUILD_DIR)/extpe$(EXT) $(BUILD_DIR)/modpe$(EXT)
 

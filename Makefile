@@ -10,10 +10,10 @@ tools: $(BUILD_DIR)/linker$(EXT) $(BUILD_DIR)/extpe$(EXT) $(BUILD_DIR)/modpe$(EX
 $(BUILD_DIR)/linker$(EXT): linker.c
 	$(CC) $(CFLAGS) -o $@ $<
 
-$(BUILD_DIR)/extpe$(EXT): extpe.c pe.h
+$(BUILD_DIR)/extpe$(EXT): extpe.c
 	$(CC) $(CFLAGS) -o $@ $<
 
-$(BUILD_DIR)/modpe$(EXT): modpe.c pe.h
+$(BUILD_DIR)/modpe$(EXT): modpe.c
 	$(CC) $(CFLAGS) -o $@ $<
 
 clean:

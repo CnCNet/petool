@@ -20,7 +20,7 @@
 #include <strings.h>
 #include <ctype.h>
 #include <unistd.h>
-#include "pe.h"
+#include <windows.h>
 #include "list.h"
 
 struct annotation {
@@ -189,7 +189,7 @@ int patch_image(void *image, unsigned int address, void *patch, int length)
 
             if (sct_hdr->SizeOfRawData < length)
             {
-                fprintf(stderr, "Error: section length (%d) is less than patch length (%d), maybe expand the image a bit more?\r\n", sct_hdr->SizeOfRawData, length);
+                fprintf(stderr, "Error: section length (%u) is less than patch length (%d), maybe expand the image a bit more?\r\n", (unsigned int)sct_hdr->SizeOfRawData, length);
                 return 0;
             }
 

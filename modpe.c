@@ -17,7 +17,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "pe.h"
+#include <windows.h>
 
 int main(int argc, char **argv)
 {
@@ -108,12 +108,12 @@ int main(int argc, char **argv)
             }
         }
 
-        printf("%10.8s %8d %8d %8d %8X %s%s%s%s%s%s %s\n",
+        printf("%10.8s %8u %8u %8u %8X %s%s%s%s%s%s %s\n",
                 sct_hdr->Name,
-                sct_hdr->PointerToRawData,
-                sct_hdr->PointerToRawData + sct_hdr->SizeOfRawData,
-                sct_hdr->SizeOfRawData ? sct_hdr->SizeOfRawData : sct_hdr->Misc.VirtualSize,
-                sct_hdr->VirtualAddress + nt_hdr->OptionalHeader.ImageBase,
+                (unsigned int)sct_hdr->PointerToRawData,
+                (unsigned int)(sct_hdr->PointerToRawData + sct_hdr->SizeOfRawData),
+                (unsigned int)(sct_hdr->SizeOfRawData ? sct_hdr->SizeOfRawData : sct_hdr->Misc.VirtualSize),
+                (unsigned int)(sct_hdr->VirtualAddress + nt_hdr->OptionalHeader.ImageBase),
                 sct_hdr->Characteristics & IMAGE_SCN_MEM_READ               ? "r" : "-",
                 sct_hdr->Characteristics & IMAGE_SCN_MEM_WRITE              ? "w" : "-",
                 sct_hdr->Characteristics & IMAGE_SCN_MEM_EXECUTE            ? "x" : "-",

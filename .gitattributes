@@ -1,0 +1,9 @@
+# Auto detect text files and perform LF normalization
+*	text=auto
+
+*.c	text
+*.h	text
+
+*.cmd	text eol=clrf
+
+*.exe	-text

@@ -520,7 +520,10 @@ int main(int argc, char **argv)
                 }
 
                 for (i = 1; i < ann->argc; i++) {
-                    buf[i-1] = (char)strtol(ann->argv[i], NULL, 0);
+                    if (strlen(ann->argv[i]) == 3 && ann->argv[i][0] == '\'' && ann->argv[i][2] == '\'')
+                        buf[i-1] = ann->argv[i][1];
+                    else
+                        buf[i-1] = (char)strtol(ann->argv[i], NULL, 0);
                 }
 
                 if (!patch_image(exe_data, address, buf, length))

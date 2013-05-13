@@ -321,7 +321,7 @@ int main(int argc, char **argv)
         if (address == 0)
             sscanf(l, "%X", &address);
 
-        if (strstr(l, "Section .text"))
+        if (i == 0 && strstr(l, "Real") && strstr(l, "Virtual") && strstr(l, "Name"))
             i = 1;
 
         if (i && sscanf(l, "%*X %X  %s", &a, label) == 2)

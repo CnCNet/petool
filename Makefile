@@ -7,13 +7,7 @@ EXT       ?= .exe
 
 tools: $(BUILD_DIR)/linker$(EXT) $(BUILD_DIR)/extpe$(EXT) $(BUILD_DIR)/modpe$(EXT)
 
-$(BUILD_DIR)/linker$(EXT): linker.c
-	$(CC) $(CFLAGS) -o $@ $<
-
-$(BUILD_DIR)/extpe$(EXT): extpe.c
-	$(CC) $(CFLAGS) -o $@ $<
-
-$(BUILD_DIR)/modpe$(EXT): modpe.c
+$(BUILD_DIR)/%$(EXT): %.c
 	$(CC) $(CFLAGS) -o $@ $<
 
 clean:

@@ -16,6 +16,6 @@ $(BUILD_DIR)/modpe$(EXT): modpe.c pe.h
 	$(CC) $(CFLAGS) -o $@ $<
 
 clean:
-	rm -rf $(BUILD_DIR)/linker$(EXT) $(BUILD_DIR)/extpe$(EXT)
+	rm -rf $(BUILD_DIR)/linker$(EXT) $(BUILD_DIR)/extpe$(EXT) $(BUILD_DIR)/modpe$(EXT)
 
 .PHONY: tools clean

@@ -5,7 +5,7 @@ CC         = i686-w64-mingw32-gcc
 CFLAGS     = -m32 -std=c99 -pedantic -O2 -Wall -DREV=\"$(REV)\"
 EXT       ?= .exe
 
-tools: $(BUILD_DIR)/linker$(EXT) $(BUILD_DIR)/petools$(EXT)
+tools: $(BUILD_DIR)/linker$(EXT) $(BUILD_DIR)/petool$(EXT)
 
 $(BUILD_DIR)/%$(EXT): %.c
 	$(CC) $(CFLAGS) -o $@ $<

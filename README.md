@@ -37,7 +37,7 @@ following line at the beginning:
 
     [ORG <address>]
 
-where _<address>_ is replaced by the address you got from **extpe**.
+where `<address>` is replaced by the address you got from **extpe**.
 
 Now you are ready to compile your code. Use **linker** against each source file
 and it should say it PATCHed your newly created section with the code that is in
@@ -68,7 +68,7 @@ These annotations are essential for your code to be executed as with them you
 can write JMPs and CALLs directly over the original code of the executable.
 
 All annotations start with the @ symbol and take one or more arguments separated
-by spaces. Required arguments are in _<>_ and optional in _[]_.
+by spaces. Required arguments are in `<>` and optional in `[]`.
 
 Keywords _from_, _to_ and _address_ are absolute memory addresses. Global labels
 in your own assembly code will be replaced by their absolute address while
@@ -80,7 +80,7 @@ annotations.
     @CLEAR <from> <byte> <to>
 
 Clearing is extremely important if you want to keep your target program code
-tidy. _<byte>_ is an 8-bit number being the byte that is written. _<to>_ is
+tidy. `<byte>` is an 8-bit number being the byte that is written. `<to>` is
 not inclusive.
 
 When you write a JMP or anything else over the original code that would leave
@@ -97,8 +97,8 @@ Example: `@CLEAR 0x410000 0x90 0x410005 ; NOP 5 bytes starting from 0x410000`
 
 Jumps are your best friend. You can jump from the middle of any function to your
 new section to do custom processing. A jump overwrites the instructions at
-_<from>_ with either 5 bytes far jump or 2 byte near jump depending how far
-apart it is from _<to>_.
+`<from>` with either 5 bytes far jump or 2 byte near jump depending how far
+apart it is from `<to>`.
 
 As you probably know, when you jump out, you also need to jump back when you have
 finished with your modifications. Remember to end your label with an absolute
@@ -114,7 +114,7 @@ Example: `@JMP 0x410000 doMagic ; Do a (far) jump from 0x410000 to label doMagic
 Sometimes you need to replace a single function call instead of the called
 function itself (then you would write a JMP at the beginning of it).
 
-The CALL annotation writes a 5 byte CALL at _<address>_ to _<to>_.
+The CALL annotation writes a 5 byte CALL at `<address>` to `<to>`.
 
 Example: `@CALL 0x410000 doMagic ; Make a call from 0x410000 to label doMagic`
 
@@ -132,7 +132,7 @@ Maybe a PUSH instruction has the wrong value or some local variable has a bad
 initialization. You're here to fix bugs, right?
 
 Set family of annotations write the number of arguments amount of raw data at
-the target _<address>_. The number of arguments is not limited. Please keep in
+the target `<address>`. The number of arguments is not limited. Please keep in
 mind that the type of the command determines the size of the write.
 
 Example: `@SETD 0x410000 1 2 3 ; Write three DWORDs to 0x410000 (12 bytes)`  

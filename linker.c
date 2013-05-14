@@ -27,7 +27,7 @@
 struct annotation {
     char *type;
     int argc;
-    char **argv; 
+    char **argv;
     struct annotation *next;
 };
 

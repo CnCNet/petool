@@ -20,6 +20,24 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
+int compile_flags(char flag_list[]) {
+    int i = 0;
+    int flags = 0;
+    for (; i < strlen(flag_list); i++)
+    {
+        switch (flag_list[i])
+        {
+            case 'r': flags |= IMAGE_SCN_MEM_READ;                  break;
+            case 'w': flags |= IMAGE_SCN_MEM_WRITE;                 break;
+            case 'x': flags |= IMAGE_SCN_MEM_EXECUTE;               break;
+            case 'c': flags |= IMAGE_SCN_CNT_CODE;                  break;
+            case 'i': flags |= IMAGE_SCN_CNT_INITIALIZED_DATA;      break;
+            case 'u': flags |= IMAGE_SCN_CNT_UNINITIALIZED_DATA;    break;
+        }
+    }
+    return flags;
+}
+
 unsigned long bytealign(unsigned long raw, unsigned long align)
 {
     return ((raw / align) + (raw % align > 0)) * align;
@@ -41,35 +59,27 @@ int main(int argc, char **argv)
     PIMAGE_NT_HEADERS nt_hdr;
     PIMAGE_SECTION_HEADER sct_hdr;
 
-    if (argc < 5)
+    if (argc < 2)
     {
-        fprintf(stderr, "nasm-patcher extpe git~%s (c) 2012-2013 Toni Spets\n\n", REV);
-        fprintf(stderr, "usage: %s <executable> <section name> <flags: rwxciu> <size>\n", argv[0]);
+        fprintf(stderr, "nasm-patcher petool git~%s (c) 2012-2013 Toni Spets\n\n", REV);
+        fprintf(stderr, "usage: %s <executable> [section name> <flags: rwxciu> [<size>]]\n", argv[0]);
         return 1;
     }
 
-    name = argv[2];
-
-    if (strlen(name) > 8)
+    if (argc >= 4)
     {
-        fprintf(stderr, "Error: section name over 8 characters.\n");
-        return 1;
-    }
+        name = argv[2];
 
-    for (i = 0; i < strlen(argv[3]); i++)
-    {
-        switch (argv[3][i])
+        if (strlen(name) > 8)
         {
-            case 'r': flags |= IMAGE_SCN_MEM_READ;                  break;
-            case 'w': flags |= IMAGE_SCN_MEM_WRITE;                 break;
-            case 'x': flags |= IMAGE_SCN_MEM_EXECUTE;               break;
-            case 'c': flags |= IMAGE_SCN_CNT_CODE;                  break;
-            case 'i': flags |= IMAGE_SCN_CNT_INITIALIZED_DATA;      break;
-            case 'u': flags |= IMAGE_SCN_CNT_UNINITIALIZED_DATA;    break;
+            fprintf(stderr, "Error: section name over 8 characters.\n");
+            return 1;
         }
+
+        flags = compile_flags(argv[3]);
     }
 
-    bytes = abs(atoi(argv[4]));
+    if (argc >= 5) bytes = abs(atoi(argv[4]));
 
     fh = fopen(argv[1], "rb+");
     if (!fh)
@@ -100,11 +110,25 @@ int main(int argc, char **argv)
     printf("   section    start      end   length    vaddr  flags\n");
     printf("-----------------------------------------------------\n");
 
-    nt_hdr->FileHeader.NumberOfSections++;
+    if (argc >= 5) nt_hdr->FileHeader.NumberOfSections++;
 
     for (i = 0; i < nt_hdr->FileHeader.NumberOfSections; i++)
     {
-        if (i == nt_hdr->FileHeader.NumberOfSections - 1)
+        char sct_name[9];
+
+        if (name && flags && argc <= 4)
+        {
+            memset(sct_name, 0, sizeof name);
+            memcpy(sct_name, sct_hdr->Name, 8);
+
+            if (strcmp(sct_name, name) == 0)
+            {
+                sct_hdr->Characteristics = flags;
+                nt_hdr->OptionalHeader.CheckSum     = 0x00000000;
+            }
+        }
+
+        if (i == nt_hdr->FileHeader.NumberOfSections - 1 && argc >= 5)
         {
             if (((char *)sct_hdr + sizeof(*sct_hdr) - (char *)data) >= first_ptr)
             {
@@ -159,7 +183,11 @@ int main(int argc, char **argv)
                 sct_hdr->Characteristics & IMAGE_SCN_CNT_CODE               ? "c" : "-",
                 sct_hdr->Characteristics & IMAGE_SCN_CNT_INITIALIZED_DATA   ? "i" : "-",
                 sct_hdr->Characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA ? "u" : "-",
-                i == nt_hdr->FileHeader.NumberOfSections - 1        ? "<- you are here" : ""
+               (argc >= 5) 
+               ?
+               (i == nt_hdr->FileHeader.NumberOfSections - 1                ? "<- you are here"     : "")
+               :
+               ((name ? (strcmp(sct_name, name) == 0) : 0)                  ? "<- this was updated" : "")
         );
 
         sct_hdr++;

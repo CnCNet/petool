@@ -135,7 +135,7 @@ Set family of annotations write the number of arguments amount of raw data at
 the target _<address>_. The number of arguments is not limited. Please keep in
 mind that the type of the command determines the size of the write.
 
-Example: `@SETD 0x410000 1 2 3 ; Write three DWORDs to 0x410000 (12 bytes)`
+Example: `@SETD 0x410000 1 2 3 ; Write three DWORDs to 0x410000 (12 bytes)`  
 Example: `@SETF 0x410000 1.234 ; Write a float to 0x410000`
 
 SETB also accepts character literals enclosed in single quotes which helps

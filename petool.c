@@ -28,6 +28,8 @@ int petool_section_add(void **image, long *length, int argc, char **argv);
 int petool_section_remove(void **image, long *length, int argc, char **argv);
 int petool_section_edit(void **image, long *length, int argc, char **argv);
 int petool_dump(void **image, long *length, int argc, char **argv);
+int petool_section_export(void **image, long *length, int argc, char **argv);
+int petool_section_import(void **image, long *length, int argc, char **argv);
 
 int main(int argc, char **argv)
 {
@@ -64,19 +66,27 @@ int main(int argc, char **argv)
 
     if (strcmp(argv[2], "dump") == 0)
     {
-        ret = petool_dump(&image, &length, argc - 1, &argv[2]);
+        ret = petool_dump(&image, &length, argc - 2, &argv[2]);
     }
     else if (strcmp(argv[2], "remove") == 0)
     {
-        ret = petool_section_remove(&image, &length, argc - 1, &argv[2]);
+        ret = petool_section_remove(&image, &length, argc - 2, &argv[2]);
     }
     else if (strcmp(argv[2], "edit") == 0)
     {
-        ret = petool_section_edit(&image, &length, argc - 1, &argv[2]);
+        ret = petool_section_edit(&image, &length, argc - 2, &argv[2]);
     }
     else if (strcmp(argv[2], "add") == 0)
     {
-        ret = petool_section_add(&image, &length, argc - 1, &argv[2]);
+        ret = petool_section_add(&image, &length, argc - 2, &argv[2]);
+    }
+    else if (strcmp(argv[2], "export") == 0)
+    {
+        ret = petool_section_export(&image, &length, argc - 2, &argv[2]);
+    }
+    else if (strcmp(argv[2], "import") == 0)
+    {
+        ret = petool_section_import(&image, &length, argc - 2, &argv[2]);
     }
 
     if (ret)
@@ -364,6 +374,132 @@ int petool_dump(void **image, long *length, int argc, char **argv)
                 sct_hdr->Characteristics & IMAGE_SCN_CNT_CODE               ? "c" : "-",
                 sct_hdr->Characteristics & IMAGE_SCN_CNT_INITIALIZED_DATA   ? "i" : "-",
                 sct_hdr->Characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA ? "u" : "-"
+        );
+
+        sct_hdr++;
+    }
+
+    return 0;
+}
+
+int petool_section_export(void **image, long *length, int argc, char **argv)
+{
+    PIMAGE_DOS_HEADER dos_hdr = *image;
+    PIMAGE_NT_HEADERS nt_hdr = (void *)((char *)*image + dos_hdr->e_lfanew);
+    PIMAGE_SECTION_HEADER sct_hdr = IMAGE_FIRST_SECTION(nt_hdr);
+
+    if (argc < 3)
+    {
+        printf("Error: Section name and output file required.\n");
+        return 0;
+    }
+
+    char *name = argv[1];
+    char *output = argv[2];
+
+    printf("   section    start      end   length    vaddr  flags\n");
+    printf("-----------------------------------------------------\n");
+
+    for (int i = 0; i < nt_hdr->FileHeader.NumberOfSections; i++)
+    {
+        char sct_name[9];
+        memset(sct_name, 0, sizeof name);
+        memcpy(sct_name, sct_hdr->Name, 8);
+
+        if (strcmp(sct_name, name) == 0)
+        {
+            FILE *fh = fopen(output, "wb");
+            if (!fh)
+            {
+                perror(output);
+                return 0;
+            }
+
+            fwrite((char *)*image + sct_hdr->PointerToRawData, sct_hdr->SizeOfRawData, 1, fh);
+            fclose(fh);
+        }
+
+        printf("%10.8s %8u %8u %8u %8X %s%s%s%s%s%s %s\n",
+                sct_hdr->Name,
+                (unsigned int)sct_hdr->PointerToRawData,
+                (unsigned int)(sct_hdr->PointerToRawData + sct_hdr->SizeOfRawData),
+                (unsigned int)(sct_hdr->SizeOfRawData ? sct_hdr->SizeOfRawData : sct_hdr->Misc.VirtualSize),
+                (unsigned int)(sct_hdr->VirtualAddress + nt_hdr->OptionalHeader.ImageBase),
+                sct_hdr->Characteristics & IMAGE_SCN_MEM_READ               ? "r" : "-",
+                sct_hdr->Characteristics & IMAGE_SCN_MEM_WRITE              ? "w" : "-",
+                sct_hdr->Characteristics & IMAGE_SCN_MEM_EXECUTE            ? "x" : "-",
+                sct_hdr->Characteristics & IMAGE_SCN_CNT_CODE               ? "c" : "-",
+                sct_hdr->Characteristics & IMAGE_SCN_CNT_INITIALIZED_DATA   ? "i" : "-",
+                sct_hdr->Characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA ? "u" : "-",
+                strcmp(sct_name, name) == 0                                 ? "<- this was exported" : ""
+        );
+
+        sct_hdr++;
+    }
+
+    return 0;
+}
+
+int petool_section_import(void **image, long *length, int argc, char **argv)
+{
+    PIMAGE_DOS_HEADER dos_hdr = *image;
+    PIMAGE_NT_HEADERS nt_hdr = (void *)((char *)*image + dos_hdr->e_lfanew);
+    PIMAGE_SECTION_HEADER sct_hdr = IMAGE_FIRST_SECTION(nt_hdr);
+
+    if (argc < 3)
+    {
+        printf("Error: Section name and output file required.\n");
+        return 0;
+    }
+
+    char *name = argv[1];
+    char *input = argv[2];
+
+    printf("   section    start      end   length    vaddr  flags\n");
+    printf("-----------------------------------------------------\n");
+
+    for (int i = 0; i < nt_hdr->FileHeader.NumberOfSections; i++)
+    {
+        char sct_name[9];
+        memset(sct_name, 0, sizeof name);
+        memcpy(sct_name, sct_hdr->Name, 8);
+
+        if (strcmp(sct_name, name) == 0)
+        {
+            FILE *fh = fopen(input, "r");
+            if (!fh)
+            {
+                perror(input);
+                return 0;
+            }
+
+            fseek(fh, 0, SEEK_END);
+            long length = ftell(fh);
+            fseek(fh, 0, SEEK_SET);
+
+            if (length > sct_hdr->SizeOfRawData)
+            {
+                fprintf(stderr, "Error: Section is too small for this file.\n");
+                fclose(fh);
+                return 0;
+            }
+
+            fread((char *)*image + sct_hdr->PointerToRawData, length, 1, fh);
+        }
+
+        printf("%10.8s %8u %8u %8u %8X %s%s%s%s%s%s %s\n",
+                sct_hdr->Name,
+                (unsigned int)sct_hdr->PointerToRawData,
+                (unsigned int)(sct_hdr->PointerToRawData + sct_hdr->SizeOfRawData),
+                (unsigned int)(sct_hdr->SizeOfRawData ? sct_hdr->SizeOfRawData : sct_hdr->Misc.VirtualSize),
+                (unsigned int)(sct_hdr->VirtualAddress + nt_hdr->OptionalHeader.ImageBase),
+                sct_hdr->Characteristics & IMAGE_SCN_MEM_READ               ? "r" : "-",
+                sct_hdr->Characteristics & IMAGE_SCN_MEM_WRITE              ? "w" : "-",
+                sct_hdr->Characteristics & IMAGE_SCN_MEM_EXECUTE            ? "x" : "-",
+                sct_hdr->Characteristics & IMAGE_SCN_CNT_CODE               ? "c" : "-",
+                sct_hdr->Characteristics & IMAGE_SCN_CNT_INITIALIZED_DATA   ? "i" : "-",
+                sct_hdr->Characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA ? "u" : "-",
+                strcmp(sct_name, name) == 0                                 ? "<- this was exported" : ""
         );
 
         sct_hdr++;

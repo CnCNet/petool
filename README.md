@@ -5,7 +5,7 @@ Toolkit to patch 32-bit Windows applications using NASM assembler.
 
 ### Tools
 
- - petool - Add, edit and remove sections from PE image
+ - petool - Edit, add, remove, import, and export sections from PE images
  - linker - Compile and "link" assembly patches using NASM
 
 Building

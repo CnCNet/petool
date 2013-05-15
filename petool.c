@@ -141,7 +141,7 @@ int petool_section_add(void **image, long *length, int argc, char **argv)
     char *name = argv[1];
     int flags = strflags(argv[2]);
     int bytes = abs(atoi(argv[3]));
-    unsigned int address = 0, first_ptr = -1;
+    unsigned int address = 0, start = 0, first_ptr = -1;
     long olength = *length;
 
     nt_hdr->FileHeader.NumberOfSections++;
@@ -183,7 +183,7 @@ int petool_section_add(void **image, long *length, int argc, char **argv)
             }
             else
             {
-                sct_hdr->PointerToRawData = *length;
+                sct_hdr->PointerToRawData = start;
                 *length += sct_hdr->SizeOfRawData;
             }
 
@@ -195,6 +195,11 @@ int petool_section_add(void **image, long *length, int argc, char **argv)
             if (sct_hdr->VirtualAddress >= address)
             {
                 address = sct_hdr->VirtualAddress + bytealign(sct_hdr->Misc.VirtualSize ? sct_hdr->Misc.VirtualSize : sct_hdr->SizeOfRawData, nt_hdr->OptionalHeader.SectionAlignment);
+
+                if (sct_hdr->Characteristics & IMAGE_SCN_CNT_INITIALIZED_DATA)
+                {
+                    start = sct_hdr->PointerToRawData + sct_hdr->SizeOfRawData;
+                }
             }
 
             if (sct_hdr->PointerToRawData > 0 && sct_hdr->PointerToRawData < first_ptr)
@@ -222,8 +227,16 @@ int petool_section_add(void **image, long *length, int argc, char **argv)
     }
 
     *image = realloc(*image, *length);
-    // zero the new section
-    memset((char *)*image + olength, 0, *length - olength);
+
+    // move symbol table if present
+    if (nt_hdr->FileHeader.PointerToSymbolTable >= start)
+    {
+        nt_hdr->FileHeader.PointerToSymbolTable += (*length - olength);
+    }
+
+    // move and zero the new section
+    memmove((char *)*image + start + (*length - olength), (char *)*image + start, olength - start);
+    memset((char *)*image + start, 0, *length - olength);
 
     return 1;
 }
@@ -243,8 +256,6 @@ int petool_section_remove(void **image, long *length, int argc, char **argv)
         return 0;
     }
 
-    *length = 0;
-
     for (int i = 0; i < nt_hdr->FileHeader.NumberOfSections; i++)
     {
         printf("%10.8s %8u %8u %8u %8X %s%s%s%s%s%s %s\n",
@@ -262,12 +273,6 @@ int petool_section_remove(void **image, long *length, int argc, char **argv)
                 (i == nt_hdr->FileHeader.NumberOfSections - 1               ? "<- this was removed" : "")
         );
 
-        // keep track of the last raw section start point
-        if (sct_hdr->PointerToRawData > *length)
-        {
-            *length = sct_hdr->PointerToRawData;
-        }
-
         if (i == nt_hdr->FileHeader.NumberOfSections - 1)
         {
             if (sct_hdr->Characteristics & IMAGE_SCN_CNT_CODE)
@@ -281,6 +286,17 @@ int petool_section_remove(void **image, long *length, int argc, char **argv)
 
             nt_hdr->OptionalHeader.SizeOfImage  = bytealign(sct_hdr->VirtualAddress, nt_hdr->OptionalHeader.SectionAlignment);
             nt_hdr->OptionalHeader.CheckSum     = 0x00000000;
+
+            // move symbol table if present
+            if (nt_hdr->FileHeader.PointerToSymbolTable >= sct_hdr->SizeOfRawData)
+            {
+                nt_hdr->FileHeader.PointerToSymbolTable -= sct_hdr->SizeOfRawData;
+            }
+
+            *length -= sct_hdr->SizeOfRawData;
+
+            // move the rest of the image
+            memmove((char *)*image + sct_hdr->PointerToRawData, (char *)*image + sct_hdr->PointerToRawData + sct_hdr->SizeOfRawData, *length - (sct_hdr->PointerToRawData + sct_hdr->SizeOfRawData));
 
             // zero the removed section header
             memset(sct_hdr, 0, sizeof *sct_hdr);

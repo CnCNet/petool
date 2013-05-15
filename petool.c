@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Toni Spets <toni.spets@iki.fi>
+ * Copyright (c) 2012, 2013 Toni Spets <toni.spets@iki.fi>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -17,15 +17,87 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-int compile_flags(char flag_list[]) {
-    int i = 0;
-    int flags = 0;
-    for (; i < strlen(flag_list); i++)
+int strflags(char *flag_list);
+unsigned long bytealign(unsigned long raw, unsigned long align);
+
+int petool_section_add(void **image, long *length, int argc, char **argv);
+int petool_section_remove(void **image, long *length, int argc, char **argv);
+int petool_section_edit(void **image, long *length, int argc, char **argv);
+int petool_dump(void **image, long *length, int argc, char **argv);
+
+int main(int argc, char **argv)
+{
+    if (argc < 3)
     {
-        switch (flag_list[i])
+        fprintf(stderr, "nasm-patcher petool git~%s (c) 2012-2013 Toni Spets\n\n", REV);
+        fprintf(stderr, "usage: %s <executable> <command> [args ...]\n", argv[0]);
+        return 1;
+    }
+
+    FILE *fh = fopen(argv[1], "rb+");
+    if (!fh)
+    {
+        perror("Error opening executable");
+        return 1;
+    }
+
+    fseek(fh, 0L, SEEK_END);
+    long length = ftell(fh);
+    rewind(fh);
+
+    void *image = malloc(length);
+
+    if (fread(image, length, 1, fh) != 1)
+    {
+        fclose(fh);
+        perror("Error reading executable");
+        return 1;
+    }
+
+    rewind(fh);
+
+    long ret = 0;
+
+    if (strcmp(argv[2], "dump") == 0)
+    {
+        ret = petool_dump(&image, &length, argc - 1, &argv[2]);
+    }
+    else if (strcmp(argv[2], "remove") == 0)
+    {
+        ret = petool_section_remove(&image, &length, argc - 1, &argv[2]);
+    }
+    else if (strcmp(argv[2], "edit") == 0)
+    {
+        ret = petool_section_edit(&image, &length, argc - 1, &argv[2]);
+    }
+    else if (strcmp(argv[2], "add") == 0)
+    {
+        ret = petool_section_add(&image, &length, argc - 1, &argv[2]);
+    }
+
+    if (ret)
+    {
+        fwrite(image, length, 1, fh);
+        ftruncate(fileno(fh), length);
+    }
+
+    free(image);
+    fclose(fh);
+
+    return 0;
+}
+
+int strflags(char *flag_list)
+{
+    int flags = 0;
+
+    for (int i = 0; i < strlen(flag_list); i++)
+    {
+        switch (tolower(flag_list[i]))
         {
             case 'r': flags |= IMAGE_SCN_MEM_READ;                  break;
             case 'w': flags |= IMAGE_SCN_MEM_WRITE;                 break;
@@ -35,6 +107,7 @@ int compile_flags(char flag_list[]) {
             case 'u': flags |= IMAGE_SCN_CNT_UNINITIALIZED_DATA;    break;
         }
     }
+
     return flags;
 }
 
@@ -43,94 +116,34 @@ unsigned long bytealign(unsigned long raw, unsigned long align)
     return ((raw / align) + (raw % align > 0)) * align;
 }
 
-int main(int argc, char **argv)
+int petool_section_add(void **image, long *length, int argc, char **argv)
 {
-    FILE *fh;
-    unsigned char *data;
-    unsigned int bytes = 0x1000;
-    long length;
-    int i;
-    unsigned int address = 0;
-    unsigned int flags = 0;
-    unsigned int first_ptr = -1;
-    char *name = NULL;
+    PIMAGE_DOS_HEADER dos_hdr = *image;
+    PIMAGE_NT_HEADERS nt_hdr = (void *)((char *)*image + dos_hdr->e_lfanew);
+    PIMAGE_SECTION_HEADER sct_hdr = IMAGE_FIRST_SECTION(nt_hdr);
 
-    PIMAGE_DOS_HEADER dos_hdr;
-    PIMAGE_NT_HEADERS nt_hdr;
-    PIMAGE_SECTION_HEADER sct_hdr;
-
-    if (argc < 2)
+    if (argc < 4)
     {
-        fprintf(stderr, "nasm-patcher petool git~%s (c) 2012-2013 Toni Spets\n\n", REV);
-        fprintf(stderr, "usage: %s <executable> [section name> <flags: rwxciu> [<size>]]\n", argv[0]);
-        return 1;
+        printf("Error: Section name, flags and size required.\n");
+        return 0;
     }
 
-    if (argc >= 4)
-    {
-        name = argv[2];
+    char *name = argv[1];
+    int flags = strflags(argv[2]);
+    int bytes = abs(atoi(argv[3]));
+    unsigned int address = 0, first_ptr = -1;
+    long olength = *length;
 
-        if (strlen(name) > 8)
-        {
-            fprintf(stderr, "Error: section name over 8 characters.\n");
-            return 1;
-        }
-
-        flags = compile_flags(argv[3]);
-    }
-
-    if (argc >= 5) bytes = abs(atoi(argv[4]));
-
-    fh = fopen(argv[1], "rb+");
-    if (!fh)
-    {
-        perror("Error opening executable");
-        return 1;
-    }
-
-    fseek(fh, 0L, SEEK_END);
-    length = ftell(fh);
-    rewind(fh);
-
-    data = malloc(length);
-
-    if (fread(data, length, 1, fh) != 1)
-    {
-        fclose(fh);
-        perror("Error reading executable");
-        return 1;
-    }
-
-    rewind(fh);
-
-    dos_hdr = (void *)data;
-    nt_hdr = (void *)(data + dos_hdr->e_lfanew);
-    sct_hdr = IMAGE_FIRST_SECTION(nt_hdr);
+    nt_hdr->FileHeader.NumberOfSections++;
 
     printf("   section    start      end   length    vaddr  flags\n");
     printf("-----------------------------------------------------\n");
 
-    if (argc >= 5) nt_hdr->FileHeader.NumberOfSections++;
-
-    for (i = 0; i < nt_hdr->FileHeader.NumberOfSections; i++)
+    for (int i = 0; i < nt_hdr->FileHeader.NumberOfSections; i++)
     {
-        char sct_name[9];
-
-        if (name && flags && argc <= 4)
+        if (i == nt_hdr->FileHeader.NumberOfSections - 1)
         {
-            memset(sct_name, 0, sizeof name);
-            memcpy(sct_name, sct_hdr->Name, 8);
-
-            if (strcmp(sct_name, name) == 0)
-            {
-                sct_hdr->Characteristics = flags;
-                nt_hdr->OptionalHeader.CheckSum     = 0x00000000;
-            }
-        }
-
-        if (i == nt_hdr->FileHeader.NumberOfSections - 1 && argc >= 5)
-        {
-            if (((char *)sct_hdr + sizeof(*sct_hdr) - (char *)data) >= first_ptr)
+            if (((char *)sct_hdr + sizeof(*sct_hdr) - (char *)*image) >= first_ptr)
             {
                 fprintf(stderr, "Error: new section would overflow image data!\n");
                 return 1;
@@ -140,25 +153,34 @@ int main(int argc, char **argv)
             strncpy((char *)sct_hdr->Name, name, 8);
             sct_hdr->Misc.VirtualSize = bytes;
             sct_hdr->VirtualAddress = address;
-            sct_hdr->SizeOfRawData = bytealign(bytes, nt_hdr->OptionalHeader.FileAlignment);
-            sct_hdr->PointerToRawData = flags & IMAGE_SCN_CNT_UNINITIALIZED_DATA ? 0 : length;
             sct_hdr->Characteristics = flags;
-
-            /* for expanding the image file */
-            bytes = sct_hdr->SizeOfRawData;
+            sct_hdr->SizeOfRawData = bytealign(bytes, nt_hdr->OptionalHeader.FileAlignment);
 
             if (flags & IMAGE_SCN_CNT_CODE)
+            {
                 nt_hdr->OptionalHeader.SizeOfCode               += sct_hdr->SizeOfRawData;
+            }
 
             if (flags & IMAGE_SCN_CNT_INITIALIZED_DATA)
+            {
                 nt_hdr->OptionalHeader.SizeOfInitializedData    += sct_hdr->SizeOfRawData;
+            }
 
             if (flags & IMAGE_SCN_CNT_UNINITIALIZED_DATA)
+            {
+                sct_hdr->PointerToRawData = 0;
                 nt_hdr->OptionalHeader.SizeOfUninitializedData  += sct_hdr->SizeOfRawData;
+            }
+            else
+            {
+                sct_hdr->PointerToRawData = *length;
+                *length += sct_hdr->SizeOfRawData;
+            }
 
             nt_hdr->OptionalHeader.SizeOfImage  = bytealign(sct_hdr->VirtualAddress +  sct_hdr->SizeOfRawData, nt_hdr->OptionalHeader.SectionAlignment);
             nt_hdr->OptionalHeader.CheckSum     = 0x00000000;
-        } else
+        }
+        else
         {
             if (sct_hdr->VirtualAddress >= address)
             {
@@ -183,28 +205,169 @@ int main(int argc, char **argv)
                 sct_hdr->Characteristics & IMAGE_SCN_CNT_CODE               ? "c" : "-",
                 sct_hdr->Characteristics & IMAGE_SCN_CNT_INITIALIZED_DATA   ? "i" : "-",
                 sct_hdr->Characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA ? "u" : "-",
-               (argc >= 5) 
-               ?
-               (i == nt_hdr->FileHeader.NumberOfSections - 1                ? "<- you are here"     : "")
-               :
-               ((name ? (strcmp(sct_name, name) == 0) : 0)                  ? "<- this was updated" : "")
+                (i == nt_hdr->FileHeader.NumberOfSections - 1               ? "<- this was created" : "")
         );
 
         sct_hdr++;
     }
 
-    fwrite(data, length, 1, fh);
-    free(data);
+    *image = realloc(*image, *length);
+    // zero the new section
+    memset((char *)*image + olength, 0, *length - olength);
 
-    /* only expand image if real data */
-    if (!(flags & IMAGE_SCN_CNT_UNINITIALIZED_DATA))
+    return 1;
+}
+
+int petool_section_remove(void **image, long *length, int argc, char **argv)
+{
+    PIMAGE_DOS_HEADER dos_hdr = *image;
+    PIMAGE_NT_HEADERS nt_hdr = (void *)((char *)*image + dos_hdr->e_lfanew);
+    PIMAGE_SECTION_HEADER sct_hdr = IMAGE_FIRST_SECTION(nt_hdr);
+
+    printf("   section    start      end   length    vaddr  flags\n");
+    printf("-----------------------------------------------------\n");
+
+    if (nt_hdr->FileHeader.NumberOfSections == 0)
     {
-        data = calloc(1, bytes);
-        fwrite(data, bytes, 1, fh);
-        free(data);
+        printf("Error: No sections remaining.\n");
+        return 0;
     }
 
-    fclose(fh);
+    *length = 0;
 
-    return 0;
+    for (int i = 0; i < nt_hdr->FileHeader.NumberOfSections; i++)
+    {
+        printf("%10.8s %8u %8u %8u %8X %s%s%s%s%s%s %s\n",
+                sct_hdr->Name,
+                (unsigned int)sct_hdr->PointerToRawData,
+                (unsigned int)(sct_hdr->PointerToRawData + sct_hdr->SizeOfRawData),
+                (unsigned int)(sct_hdr->SizeOfRawData ? sct_hdr->SizeOfRawData : sct_hdr->Misc.VirtualSize),
+                (unsigned int)(sct_hdr->VirtualAddress + nt_hdr->OptionalHeader.ImageBase),
+                sct_hdr->Characteristics & IMAGE_SCN_MEM_READ               ? "r" : "-",
+                sct_hdr->Characteristics & IMAGE_SCN_MEM_WRITE              ? "w" : "-",
+                sct_hdr->Characteristics & IMAGE_SCN_MEM_EXECUTE            ? "x" : "-",
+                sct_hdr->Characteristics & IMAGE_SCN_CNT_CODE               ? "c" : "-",
+                sct_hdr->Characteristics & IMAGE_SCN_CNT_INITIALIZED_DATA   ? "i" : "-",
+                sct_hdr->Characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA ? "u" : "-",
+                (i == nt_hdr->FileHeader.NumberOfSections - 1               ? "<- this was removed" : "")
+        );
+
+        // keep track of the last raw section start point
+        if (sct_hdr->PointerToRawData > *length)
+        {
+            *length = sct_hdr->PointerToRawData;
+        }
+
+        if (i == nt_hdr->FileHeader.NumberOfSections - 1)
+        {
+            if (sct_hdr->Characteristics & IMAGE_SCN_CNT_CODE)
+                nt_hdr->OptionalHeader.SizeOfCode               -= sct_hdr->SizeOfRawData;
+
+            if (sct_hdr->Characteristics & IMAGE_SCN_CNT_INITIALIZED_DATA)
+                nt_hdr->OptionalHeader.SizeOfInitializedData    -= sct_hdr->SizeOfRawData;
+
+            if (sct_hdr->Characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA)
+                nt_hdr->OptionalHeader.SizeOfUninitializedData  -= sct_hdr->SizeOfRawData;
+
+            nt_hdr->OptionalHeader.SizeOfImage  = bytealign(sct_hdr->VirtualAddress, nt_hdr->OptionalHeader.SectionAlignment);
+            nt_hdr->OptionalHeader.CheckSum     = 0x00000000;
+
+            // zero the removed section header
+            memset(sct_hdr, 0, sizeof *sct_hdr);
+        }
+
+        sct_hdr++;
+    }
+
+    nt_hdr->FileHeader.NumberOfSections--;
+
+    return 1;
+}
+
+int petool_section_edit(void **image, long *length, int argc, char **argv)
+{
+    PIMAGE_DOS_HEADER dos_hdr = *image;
+    PIMAGE_NT_HEADERS nt_hdr = (void *)((char *)*image + dos_hdr->e_lfanew);
+    PIMAGE_SECTION_HEADER sct_hdr = IMAGE_FIRST_SECTION(nt_hdr);
+
+    if (argc < 3)
+    {
+        printf("Error: Section name and flags required.\n");
+        return 0;
+    }
+
+    char *name = argv[1];
+    int flags = strflags(argv[2]);
+
+    printf("   section    start      end   length    vaddr  flags\n");
+    printf("-----------------------------------------------------\n");
+
+    if (nt_hdr->FileHeader.NumberOfSections == 0)
+    {
+        printf("Error: No sections remaining.\n");
+        return 0;
+    }
+
+    for (int i = 0; i < nt_hdr->FileHeader.NumberOfSections; i++)
+    {
+        char sct_name[9];
+        memset(sct_name, 0, sizeof name);
+        memcpy(sct_name, sct_hdr->Name, 8);
+
+        if (strcmp(sct_name, name) == 0)
+        {
+            sct_hdr->Characteristics = flags;
+            nt_hdr->OptionalHeader.CheckSum     = 0x00000000;
+        }
+
+        printf("%10.8s %8u %8u %8u %8X %s%s%s%s%s%s %s\n",
+                sct_hdr->Name,
+                (unsigned int)sct_hdr->PointerToRawData,
+                (unsigned int)(sct_hdr->PointerToRawData + sct_hdr->SizeOfRawData),
+                (unsigned int)(sct_hdr->SizeOfRawData ? sct_hdr->SizeOfRawData : sct_hdr->Misc.VirtualSize),
+                (unsigned int)(sct_hdr->VirtualAddress + nt_hdr->OptionalHeader.ImageBase),
+                sct_hdr->Characteristics & IMAGE_SCN_MEM_READ               ? "r" : "-",
+                sct_hdr->Characteristics & IMAGE_SCN_MEM_WRITE              ? "w" : "-",
+                sct_hdr->Characteristics & IMAGE_SCN_MEM_EXECUTE            ? "x" : "-",
+                sct_hdr->Characteristics & IMAGE_SCN_CNT_CODE               ? "c" : "-",
+                sct_hdr->Characteristics & IMAGE_SCN_CNT_INITIALIZED_DATA   ? "i" : "-",
+                sct_hdr->Characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA ? "u" : "-",
+                strcmp(sct_name, name) == 0                                 ? "<- this was updated" : ""
+        );
+
+        sct_hdr++;
+    }
+
+    return 1;
+}
+
+int petool_dump(void **image, long *length, int argc, char **argv)
+{
+    PIMAGE_DOS_HEADER dos_hdr = *image;
+    PIMAGE_NT_HEADERS nt_hdr = (void *)((char *)*image + dos_hdr->e_lfanew);
+    PIMAGE_SECTION_HEADER sct_hdr = IMAGE_FIRST_SECTION(nt_hdr);
+
+    printf("   section    start      end   length    vaddr  flags\n");
+    printf("-----------------------------------------------------\n");
+
+    for (int i = 0; i < nt_hdr->FileHeader.NumberOfSections; i++)
+    {
+        printf("%10.8s %8u %8u %8u %8X %s%s%s%s%s%s\n",
+                sct_hdr->Name,
+                (unsigned int)sct_hdr->PointerToRawData,
+                (unsigned int)(sct_hdr->PointerToRawData + sct_hdr->SizeOfRawData),
+                (unsigned int)(sct_hdr->SizeOfRawData ? sct_hdr->SizeOfRawData : sct_hdr->Misc.VirtualSize),
+                (unsigned int)(sct_hdr->VirtualAddress + nt_hdr->OptionalHeader.ImageBase),
+                sct_hdr->Characteristics & IMAGE_SCN_MEM_READ               ? "r" : "-",
+                sct_hdr->Characteristics & IMAGE_SCN_MEM_WRITE              ? "w" : "-",
+                sct_hdr->Characteristics & IMAGE_SCN_MEM_EXECUTE            ? "x" : "-",
+                sct_hdr->Characteristics & IMAGE_SCN_CNT_CODE               ? "c" : "-",
+                sct_hdr->Characteristics & IMAGE_SCN_CNT_INITIALIZED_DATA   ? "i" : "-",
+                sct_hdr->Characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA ? "u" : "-"
+        );
+
+        sct_hdr++;
+    }
+
+    return 1;
 }

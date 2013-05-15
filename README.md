@@ -5,8 +5,7 @@ Toolkit to patch 32-bit Windows applications using NASM assembler.
 
 ### Tools
 
- - extpe - Add new empty sections to PE images
- - modpe - Change section attributes in PE images
+ - petool - Add, edit and remove sections from PE image
  - linker - Compile and "link" assembly patches using NASM
 
 Building
@@ -25,7 +24,7 @@ the _CC_ variable in Makefile to use your native compiling gcc.
 Usage
 --------------------------------------------------------------------------------
 
-The pattern you should be using is first expanding the image with **extpe** to
+The pattern you should be using is first expanding the image with **petool** to
 add new sections with more than enough space for your new code and data to be
 written to. Take a note of the virtual address of every new section as that is
 required for your assembled code and data to work.
@@ -37,7 +36,7 @@ following line at the beginning:
 
     [ORG <address>]
 
-where `<address>` is replaced by the address you got from **extpe**.
+where `<address>` is replaced by the address you got from **petool**.
 
 Now you are ready to compile your code. Use **linker** against each source file
 and it should say it PATCHed your newly created section with the code that is in

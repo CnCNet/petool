@@ -11,6 +11,6 @@ $(BUILD_DIR)/%$(EXT): %.c
 	$(CC) $(CFLAGS) -o $@ $<
 
 clean:
-	rm -rf $(BUILD_DIR)/linker$(EXT) $(BUILD_DIR)/extpe$(EXT) $(BUILD_DIR)/modpe$(EXT)
+	rm -rf $(BUILD_DIR)/linker$(EXT) $(BUILD_DIR)/petool$(EXT)
 
 .PHONY: tools clean

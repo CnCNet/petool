@@ -164,7 +164,17 @@ int petool_section_add(void **image, long *length, int argc, char **argv)
             sct_hdr->Misc.VirtualSize = bytes;
             sct_hdr->VirtualAddress = address;
             sct_hdr->Characteristics = flags;
-            sct_hdr->SizeOfRawData = bytealign(bytes, nt_hdr->OptionalHeader.FileAlignment);
+            sct_hdr->PointerToRawData = start;
+
+            if (flags & IMAGE_SCN_CNT_UNINITIALIZED_DATA)
+            {
+                nt_hdr->OptionalHeader.SizeOfUninitializedData  += sct_hdr->SizeOfRawData;
+            }
+            else
+            {
+                sct_hdr->SizeOfRawData = bytealign(bytes, nt_hdr->OptionalHeader.FileAlignment);
+                *length += sct_hdr->SizeOfRawData;
+            }
 
             if (flags & IMAGE_SCN_CNT_CODE)
             {
@@ -176,18 +186,7 @@ int petool_section_add(void **image, long *length, int argc, char **argv)
                 nt_hdr->OptionalHeader.SizeOfInitializedData    += sct_hdr->SizeOfRawData;
             }
 
-            if (flags & IMAGE_SCN_CNT_UNINITIALIZED_DATA)
-            {
-                sct_hdr->PointerToRawData = 0;
-                nt_hdr->OptionalHeader.SizeOfUninitializedData  += sct_hdr->SizeOfRawData;
-            }
-            else
-            {
-                sct_hdr->PointerToRawData = start;
-                *length += sct_hdr->SizeOfRawData;
-            }
-
-            nt_hdr->OptionalHeader.SizeOfImage  = bytealign(sct_hdr->VirtualAddress +  sct_hdr->SizeOfRawData, nt_hdr->OptionalHeader.SectionAlignment);
+            nt_hdr->OptionalHeader.SizeOfImage  = bytealign(sct_hdr->VirtualAddress +  sct_hdr->Misc.VirtualSize, nt_hdr->OptionalHeader.SectionAlignment);
             nt_hdr->OptionalHeader.CheckSum     = 0x00000000;
 
             // set DataDirectory entry if adding resources
@@ -203,7 +202,7 @@ int petool_section_add(void **image, long *length, int argc, char **argv)
             {
                 address = sct_hdr->VirtualAddress + bytealign(sct_hdr->Misc.VirtualSize ? sct_hdr->Misc.VirtualSize : sct_hdr->SizeOfRawData, nt_hdr->OptionalHeader.SectionAlignment);
 
-                if (sct_hdr->Characteristics & IMAGE_SCN_CNT_INITIALIZED_DATA)
+                if (sct_hdr->Characteristics & ~IMAGE_SCN_CNT_INITIALIZED_DATA)
                 {
                     start = sct_hdr->PointerToRawData + sct_hdr->SizeOfRawData;
                 }

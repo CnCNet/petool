@@ -189,6 +189,13 @@ int petool_section_add(void **image, long *length, int argc, char **argv)
 
             nt_hdr->OptionalHeader.SizeOfImage  = bytealign(sct_hdr->VirtualAddress +  sct_hdr->SizeOfRawData, nt_hdr->OptionalHeader.SectionAlignment);
             nt_hdr->OptionalHeader.CheckSum     = 0x00000000;
+
+            // set DataDirectory entry if adding resources
+            if (strcmp(name, ".rsrc") == 0)
+            {
+                nt_hdr->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_RESOURCE].VirtualAddress = sct_hdr->VirtualAddress;
+                nt_hdr->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_RESOURCE].Size = sct_hdr->Misc.VirtualSize;
+            }
         }
         else
         {
@@ -226,13 +233,13 @@ int petool_section_add(void **image, long *length, int argc, char **argv)
         sct_hdr++;
     }
 
-    *image = realloc(*image, *length);
-
     // move symbol table if present
     if (nt_hdr->FileHeader.PointerToSymbolTable >= start)
     {
         nt_hdr->FileHeader.PointerToSymbolTable += (*length - olength);
     }
+
+    *image = realloc(*image, *length);
 
     // move and zero the new section
     memmove((char *)*image + start + (*length - olength), (char *)*image + start, olength - start);
@@ -293,13 +300,24 @@ int petool_section_remove(void **image, long *length, int argc, char **argv)
                 nt_hdr->FileHeader.PointerToSymbolTable -= sct_hdr->SizeOfRawData;
             }
 
-            *length -= sct_hdr->SizeOfRawData;
+            // remove pointer from DataDirectory if present
+            for (int j = 0; j < IMAGE_NUMBEROF_DIRECTORY_ENTRIES; j++)
+            {
+                PIMAGE_DATA_DIRECTORY idd = &nt_hdr->OptionalHeader.DataDirectory[j];
+
+                if (idd->VirtualAddress >= sct_hdr->VirtualAddress && idd->VirtualAddress + idd->Size <= sct_hdr->VirtualAddress + sct_hdr->Misc.VirtualSize)
+                {
+                    memset(idd, 0, sizeof *idd);
+                }
+            }
 
             // move the rest of the image
             memmove((char *)*image + sct_hdr->PointerToRawData, (char *)*image + sct_hdr->PointerToRawData + sct_hdr->SizeOfRawData, *length - (sct_hdr->PointerToRawData + sct_hdr->SizeOfRawData));
 
             // zero the removed section header
             memset(sct_hdr, 0, sizeof *sct_hdr);
+
+            *length -= sct_hdr->SizeOfRawData;
         }
 
         sct_hdr++;

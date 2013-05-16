@@ -142,7 +142,22 @@ void get_annotations(const char *src)
 
             if (parse_annotation(line, ann))
             {
-                LIST_INSERT(annotations, ann);
+                // insert to list in reverse order, not that efficient, should use another implementation
+                if (annotations == NULL)
+                {
+                    annotations = ann;
+                }
+                else
+                {
+                    LIST_FOREACH(annotations, struct annotation, ann2)
+                    {
+                        if (ann2->next == NULL)
+                        {
+                            ann2->next = ann;
+                            break;
+                        }
+                    }
+                }
             }
             else
             {

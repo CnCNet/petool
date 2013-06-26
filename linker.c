@@ -273,6 +273,47 @@ int main(int argc, char **argv)
         }
     }
 
+    // define git revision macros if possible
+    if (GetFileAttributesA(".git") != INVALID_FILE_ATTRIBUTES)
+    {
+        if ((fh = popen("git rev-parse --short @{0}", "r")) != NULL) {
+            char *git_commit = read_stream(fh);
+            pclose(fh);
+
+            if (git_commit)
+            {
+                char *tmp = strchr(git_commit, '\r');
+                if (tmp) *tmp = '\0';
+                tmp = strchr(git_commit, '\n');
+                if (tmp) *tmp = '\0';
+
+                if (strlen(git_commit) > 0)
+                {
+                    sprintf(buf, " -D__GIT_COMMIT__=\\\"%s\\\"", git_commit);
+                    strncat(nasm_flags, buf, sizeof nasm_flags);
+                }
+            }
+        }
+
+        if ((fh = popen("git rev-list @{0}", "r")) != NULL) {
+            int git_revision = 0;
+            char *tmp = read_stream(fh);
+            pclose(fh);
+
+            if (tmp) {
+                int tmplen = strlen(tmp);
+                for (int i = 0; i < tmplen; i++)
+                    if (tmp[i] == '\n')
+                        git_revision++;
+
+                if (git_revision > 0) {
+                    sprintf(buf, " -D__GIT_REVISION__=\\\"%d\\\"", git_revision);
+                    strncat(nasm_flags, buf, sizeof nasm_flags);
+                }
+            }
+        }
+    }
+
     snprintf(buf, 1024, "%s%s -e %s", nasm, nasm_flags, argv[1]);
 
     if ((fh = popen(buf, "r")) == NULL)

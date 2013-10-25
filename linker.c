@@ -459,11 +459,6 @@ int main(int argc, char **argv)
     unlink(out_name);
     free(out_name);
 
-    if (!patch_image(exe_data, (unsigned int)address, patch_data, patch_length))
-        return 1;
-
-    printf("PATCH  %8d bytes -> %8X\r\n", patch_length, address);
-
     /* create annotation patches */
     LIST_FOREACH(annotations, struct annotation, ann)
     {
@@ -748,6 +743,11 @@ int main(int argc, char **argv)
         {
             fprintf(stderr, "linker: warning: unknown annotation \"%s\"\r\n", ann->type);
         }
+    }
+
+    if (patch_image(exe_data, (unsigned int)address, patch_data, patch_length))
+    {
+        printf("PATCH  %8d bytes -> %8X\r\n", patch_length, address);
     }
 
     if (fwrite(exe_data, exe_length, 1, exe) != 1)

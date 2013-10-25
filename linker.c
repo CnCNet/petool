@@ -228,7 +228,7 @@ int main(int argc, char **argv)
     unsigned int exe_length;
     unsigned int patch_length;
     char *exe_data;
-    char *patch_data;
+    char *patch_data = NULL;
 
     char label[256];
     unsigned int address = 0;
@@ -436,23 +436,18 @@ int main(int argc, char **argv)
     patch_length = ftell(patch);
     rewind(patch);
 
-    /* ignore empty patches */
-    if (patch_length == 0)
+    if (patch_length > 0)
     {
-        free(exe_data);
-        fclose(exe);
-        return 0;
-    }
+        patch_data = malloc(patch_length);
 
-    patch_data = malloc(patch_length);
-
-    if (fread(patch_data, patch_length, 1, patch) != 1)
-    {
-        fclose(exe);
-        fclose(patch);
-        unlink(out_name);
-        perror("linker: error reading patch");
-        return 1;
+        if (fread(patch_data, patch_length, 1, patch) != 1)
+        {
+            fclose(exe);
+            fclose(patch);
+            unlink(out_name);
+            perror("linker: error reading patch");
+            return 1;
+        }
     }
 
     fclose(patch);
@@ -745,7 +740,7 @@ int main(int argc, char **argv)
         }
     }
 
-    if (patch_image(exe_data, (unsigned int)address, patch_data, patch_length))
+    if (patch_data && patch_image(exe_data, (unsigned int)address, patch_data, patch_length))
     {
         printf("PATCH  %8d bytes -> %8X\r\n", patch_length, address);
     }

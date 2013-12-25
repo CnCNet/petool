@@ -7,7 +7,7 @@ EXT       ?= .exe
 
 TOOLS      = $(BUILD_DIR)/linker$(EXT) $(BUILD_DIR)/petool$(EXT)
 
-tools: $(EXES)
+tools: $(TOOLS)
 
 $(BUILD_DIR)/%$(EXT): src/%.c
 	$(CC) $(CFLAGS) -o $@ $<

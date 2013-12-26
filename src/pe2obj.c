@@ -16,10 +16,11 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
+#include <ctype.h>
 #include <unistd.h>
 #include <time.h>
-#include <ctype.h>
 
 #ifdef _WIN32
 #    define WIN32_LEAN_AND_MEAN
@@ -71,7 +72,7 @@ int strflags(char *flag_list)
 {
     int flags = 0;
 
-    for (int i = 0; i < strlen(flag_list); i++)
+    for (unsigned int i = 0; flag_list[i] != '\0'; i++)
     {
         switch (tolower(flag_list[i]))
         {
@@ -116,18 +117,19 @@ int pe2obj(void **image, long *length, int argc, char **argv)
 
     for (int i = 0; i < nt_hdr->FileHeader.NumberOfSections; i++)
     {
-        printf("%10.8s %8u %8u %8u %8X %s%s%s%s%s%s\n",
-                sct_hdr->Name,
-                (unsigned int)sct_hdr->PointerToRawData,
-                (unsigned int)(sct_hdr->PointerToRawData + sct_hdr->SizeOfRawData),
-                (unsigned int)(sct_hdr->SizeOfRawData ? sct_hdr->SizeOfRawData : sct_hdr->Misc.VirtualSize),
-                (unsigned int)(sct_hdr->VirtualAddress + nt_hdr->OptionalHeader.ImageBase),
-                sct_hdr->Characteristics & IMAGE_SCN_MEM_READ               ? "r" : "-",
-                sct_hdr->Characteristics & IMAGE_SCN_MEM_WRITE              ? "w" : "-",
-                sct_hdr->Characteristics & IMAGE_SCN_MEM_EXECUTE            ? "x" : "-",
-                sct_hdr->Characteristics & IMAGE_SCN_CNT_CODE               ? "c" : "-",
-                sct_hdr->Characteristics & IMAGE_SCN_CNT_INITIALIZED_DATA   ? "i" : "-",
-                sct_hdr->Characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA ? "u" : "-"
+        printf(
+            "%10.8s %8u %8u %8u %8X %c%c%c%c%c%c\n",
+            sct_hdr->Name,
+            (uint32_t)sct_hdr->PointerToRawData,
+            (uint32_t)(sct_hdr->PointerToRawData + sct_hdr->SizeOfRawData),
+            (uint32_t)(sct_hdr->SizeOfRawData ? sct_hdr->SizeOfRawData : sct_hdr->Misc.VirtualSize),
+            (uint32_t)(sct_hdr->VirtualAddress + nt_hdr->OptionalHeader.ImageBase),
+            sct_hdr->Characteristics & IMAGE_SCN_MEM_READ               ? 'r' : '-',
+            sct_hdr->Characteristics & IMAGE_SCN_MEM_WRITE              ? 'w' : '-',
+            sct_hdr->Characteristics & IMAGE_SCN_MEM_EXECUTE            ? 'x' : '-',
+            sct_hdr->Characteristics & IMAGE_SCN_CNT_CODE               ? 'c' : '-',
+            sct_hdr->Characteristics & IMAGE_SCN_CNT_INITIALIZED_DATA   ? 'i' : '-',
+            sct_hdr->Characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA ? 'u' : '-'
         );
 
         if (sct_hdr->PointerToRawData)

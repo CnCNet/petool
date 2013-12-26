@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdint.h>
 #include <inttypes.h>
 #include <ctype.h>
 #include <unistd.h>
@@ -25,14 +26,11 @@
 
 #include "pe.h"
 
-int pe2obj(void **image, long *length, int argc, char **argv);
-
-int main(int argc, char **argv)
+int pe2obj(int argc, char **argv)
 {
-    if (argc < 2)
+    if (argc < 3)
     {
-        fprintf(stderr, "nasm-patcher pe2obj git~%s (c) 2012-2013 Toni Spets\n\n", REV);
-        fprintf(stderr, "usage: %s <executable> [args ...]\n", argv[0]);
+        fprintf(stderr, "usage: petool pe2obj <in> <out>\n");
         return EXIT_FAILURE;
     }
 
@@ -44,10 +42,10 @@ int main(int argc, char **argv)
     }
 
     fseek(fh, 0L, SEEK_END);
-    long length = ftell(fh);
+    uint32_t length = ftell(fh);
     rewind(fh);
 
-    void *image = malloc(length);
+    int8_t *image = malloc(length);
 
     if (fread(image, length, 1, fh) != 1)
     {
@@ -57,19 +55,10 @@ int main(int argc, char **argv)
 
     fclose(fh);
 
-    int ret = pe2obj(&image, &length, argc - 2, &argv[2]);
+    PIMAGE_DOS_HEADER dos_hdr = (void *)image;
+    PIMAGE_NT_HEADERS nt_hdr = (void *)(image + dos_hdr->e_lfanew);
 
-    free(image);
-
-    return ret;
-}
-
-int pe2obj(void **image, long *length, int argc, char **argv)
-{
-    PIMAGE_DOS_HEADER dos_hdr = *image;
-    PIMAGE_NT_HEADERS nt_hdr = (void *)((char *)*image + dos_hdr->e_lfanew);
-
-    if (*length < 512)
+    if (length < 512)
     {
         fprintf(stderr, "File too small.\n");
         return EXIT_FAILURE;
@@ -116,15 +105,17 @@ int pe2obj(void **image, long *length, int argc, char **argv)
 
     if (argc < 1)
     {
-        fprintf(stderr, "No output file");
+        fprintf(stderr, "No output file\n");
+        free(image);
         return EXIT_FAILURE;
     }
 
-    FILE *fh = fopen(argv[0], "wb");
-    fwrite((char *)*image + (dos_hdr->e_lfanew + 4), *length - (dos_hdr->e_lfanew + 4), 1, fh);
+    fh = fopen(argv[2], "wb");
+    fwrite((char *)image + (dos_hdr->e_lfanew + 4), length - (dos_hdr->e_lfanew + 4), 1, fh);
     fclose(fh);
 
-    printf("Wrote object to %s\n", argv[0]);
+    printf("Wrote object to %s\n", argv[2]);
 
+    free(image);
     return EXIT_SUCCESS;
 }

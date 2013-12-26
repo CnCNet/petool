@@ -91,7 +91,7 @@ int patch(int argc, char **argv)
     PIMAGE_DOS_HEADER dos_hdr = (void *)image;
     PIMAGE_NT_HEADERS nt_hdr = (void *)(image + dos_hdr->e_lfanew);
     PIMAGE_SECTION_HEADER sct_hdr = IMAGE_FIRST_SECTION(nt_hdr);
-    char *section = argc > 2 ? (char *)argv[2] : "PATCH";
+    char *section = argc > 2 ? (char *)argv[2] : ".patch";
 
     if (length < 512)
     {

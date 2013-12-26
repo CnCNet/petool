@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <string.h>
 
+int dump(int argc, char **argv);
 int pe2obj(int argc, char **argv);
 int patch(int argc, char **argv);
 
@@ -26,13 +27,17 @@ int main(int argc, char **argv)
     {
         fprintf(stderr, "petool git~%s (c) 2013 Toni Spets\n\n", REV);
         fprintf(stderr, "usage: %s <command> [args ...]\n", argv[0]);
-        fprintf(stderr, "commands: pe2obj patch\n");
+        fprintf(stderr, "commands: dump pe2obj patch\n");
         return 1;
     }
 
     int ret = 1;
 
-    if (strcmp(argv[1], "pe2obj") == 0)
+    if (strcmp(argv[1], "dump") == 0)
+    {
+        ret = dump(argc - 1, &argv[1]);
+    }
+    else if (strcmp(argv[1], "pe2obj") == 0)
     {
         ret = pe2obj(argc - 1, &argv[1]);
     }

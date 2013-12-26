@@ -26,11 +26,11 @@
 
 #include "pe.h"
 
-int pe2obj(int argc, char **argv)
+int dump(int argc, char **argv)
 {
-    if (argc < 3)
+    if (argc < 2)
     {
-        fprintf(stderr, "usage: petool pe2obj <in> <out>\n");
+        fprintf(stderr, "usage: petool dump <image>\n");
         return EXIT_FAILURE;
     }
 
@@ -76,40 +76,29 @@ int pe2obj(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
+    printf("   section    start      end   length    vaddr  flags\n");
+    printf("-----------------------------------------------------\n");
+
     for (int i = 0; i < nt_hdr->FileHeader.NumberOfSections; i++)
     {
         const PIMAGE_SECTION_HEADER cur_sct = IMAGE_FIRST_SECTION(nt_hdr) + i;
-        if (cur_sct->PointerToRawData)
-        {
-            cur_sct->PointerToRawData -= dos_hdr->e_lfanew + 4;
-        }
+        printf(
+            "%10.8s %8"PRIu32" %8"PRIu32" %8"PRIu32" %8"PRIX32" %c%c%c%c%c%c\n",
+            cur_sct->Name,
+            cur_sct->PointerToRawData,
+            cur_sct->PointerToRawData + cur_sct->SizeOfRawData,
+            cur_sct->SizeOfRawData ? cur_sct->SizeOfRawData : cur_sct->Misc.VirtualSize,
+            cur_sct->VirtualAddress + nt_hdr->OptionalHeader.ImageBase,
+            cur_sct->Characteristics & IMAGE_SCN_MEM_READ               ? 'r' : '-',
+            cur_sct->Characteristics & IMAGE_SCN_MEM_WRITE              ? 'w' : '-',
+            cur_sct->Characteristics & IMAGE_SCN_MEM_EXECUTE            ? 'x' : '-',
+            cur_sct->Characteristics & IMAGE_SCN_CNT_CODE               ? 'c' : '-',
+            cur_sct->Characteristics & IMAGE_SCN_CNT_INITIALIZED_DATA   ? 'i' : '-',
+            cur_sct->Characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA ? 'u' : '-'
+        );
     }
-
-    if (argc < 1)
-    {
-        fprintf(stderr, "No output file\n");
-        free(image);
-        return EXIT_FAILURE;
-    }
-
-    fh = fopen(argv[2], "wb");
-
-    if (!fh)
-    {
-        perror("Failed to open output file\n");
-        return EXIT_FAILURE;
-    }
-
-    if (fwrite((char *)image + (dos_hdr->e_lfanew + 4), length - (dos_hdr->e_lfanew + 4), 1, fh) != 1)
-    {
-        perror("Failed to write output file\n");
-        free(image);
-        fclose(fh);
-        return EXIT_FAILURE;
-    }
-
-    fclose(fh);
 
     free(image);
+
     return EXIT_SUCCESS;
 }

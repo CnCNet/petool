@@ -19,8 +19,14 @@
 #include <string.h>
 #include <unistd.h>
 #include <time.h>
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
+#include <ctype.h>
+
+#ifdef _WIN32
+#    define WIN32_LEAN_AND_MEAN
+#    include <windows.h>
+#else
+#    include "pe.h"
+#endif
 
 int pe2obj(void **image, long *length, int argc, char **argv);
 

@@ -20,9 +20,19 @@
 #include <strings.h>
 #include <ctype.h>
 #include <unistd.h>
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
 #include "list.h"
+
+#ifdef _WIN32
+#    define WIN32_LEAN_AND_MEAN
+#    include <windows.h>
+#elif defined __unix__
+#    include <sys/types.h>
+#    include <sys/stat.h>
+#    include "pe.h"
+#else
+#    error "unsuported OS"
+#endif
+
 
 struct annotation {
     char *type;
@@ -274,7 +284,12 @@ int main(int argc, char **argv)
     }
 
     // define git revision macros if possible
+#ifdef  _WIN32
     if (GetFileAttributesA(".git") != INVALID_FILE_ATTRIBUTES)
+#elif defined __unix__
+    struct stat git_dir_info;
+    if (stat(".git", &git_dir_info) != 0)
+#endif
     {
         if ((fh = popen("git rev-parse --short @{0}", "r")) != NULL) {
             char *git_commit = read_stream(fh);

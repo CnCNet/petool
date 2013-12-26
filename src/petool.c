@@ -18,8 +18,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
+#include <ctype.h>
+
+#ifdef _WIN32
+#    define WIN32_LEAN_AND_MEAN
+#    include <windows.h>
+#else
+#    include "pe.h"
+#endif
 
 int strflags(char *flag_list);
 unsigned long bytealign(unsigned long raw, unsigned long align);

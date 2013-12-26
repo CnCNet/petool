@@ -16,10 +16,10 @@
 
 #include <stdint.h>
 
-typedef int8_t  BYTE;
-typedef int16_t WORD;
-typedef int32_t DWORD;
-typedef int32_t LONG;
+typedef uint8_t  BYTE;
+typedef uint16_t WORD;
+typedef uint32_t DWORD;
+typedef uint32_t LONG;
 
 #define IMAGE_DOS_SIGNATURE    0x5A4D     /* MZ   */
 #define IMAGE_OS2_SIGNATURE    0x454E     /* NE   */

@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <inttypes.h>
 #include <ctype.h>
 #include <unistd.h>
 #include <time.h>
@@ -32,14 +33,14 @@ int main(int argc, char **argv)
     {
         fprintf(stderr, "nasm-patcher pe2obj git~%s (c) 2012-2013 Toni Spets\n\n", REV);
         fprintf(stderr, "usage: %s <executable> [args ...]\n", argv[0]);
-        return 1;
+        return EXIT_FAILURE;
     }
 
     FILE *fh = fopen(argv[1], "rb");
     if (!fh)
     {
         perror("Error opening executable");
-        return 1;
+        return EXIT_FAILURE;
     }
 
     fseek(fh, 0L, SEEK_END);
@@ -51,7 +52,7 @@ int main(int argc, char **argv)
     if (fread(image, length, 1, fh) != 1)
     {
         perror("Error reading executable");
-        return 1;
+        return EXIT_FAILURE;
     }
 
     fclose(fh);
@@ -63,48 +64,27 @@ int main(int argc, char **argv)
     return ret;
 }
 
-int strflags(char *flag_list)
-{
-    int flags = 0;
-
-    for (unsigned int i = 0; flag_list[i] != '\0'; i++)
-    {
-        switch (tolower(flag_list[i]))
-        {
-            case 'r': flags |= IMAGE_SCN_MEM_READ;                  break;
-            case 'w': flags |= IMAGE_SCN_MEM_WRITE;                 break;
-            case 'x': flags |= IMAGE_SCN_MEM_EXECUTE;               break;
-            case 'c': flags |= IMAGE_SCN_CNT_CODE;                  break;
-            case 'i': flags |= IMAGE_SCN_CNT_INITIALIZED_DATA;      break;
-            case 'u': flags |= IMAGE_SCN_CNT_UNINITIALIZED_DATA;    break;
-        }
-    }
-
-    return flags;
-}
-
 int pe2obj(void **image, long *length, int argc, char **argv)
 {
     PIMAGE_DOS_HEADER dos_hdr = *image;
     PIMAGE_NT_HEADERS nt_hdr = (void *)((char *)*image + dos_hdr->e_lfanew);
-    PIMAGE_SECTION_HEADER sct_hdr = IMAGE_FIRST_SECTION(nt_hdr);
 
     if (*length < 512)
     {
         fprintf(stderr, "File too small.\n");
-        return 1;
+        return EXIT_FAILURE;
     }
 
     if (dos_hdr->e_magic != IMAGE_DOS_SIGNATURE)
     {
         fprintf(stderr, "File DOS signature invalid.\n");
-        return 1;
+        return EXIT_FAILURE;
     }
 
     if (nt_hdr->Signature != IMAGE_NT_SIGNATURE)
     {
         fprintf(stderr, "File NT signature invalid.\n");
-        return 1;
+        return EXIT_FAILURE;
     }
 
     printf("   section    start      end   length    vaddr  flags\n");
@@ -112,33 +92,32 @@ int pe2obj(void **image, long *length, int argc, char **argv)
 
     for (int i = 0; i < nt_hdr->FileHeader.NumberOfSections; i++)
     {
+        const PIMAGE_SECTION_HEADER cur_sct = IMAGE_FIRST_SECTION(nt_hdr) + i;
         printf(
-            "%10.8s %8u %8u %8u %8X %c%c%c%c%c%c\n",
-            sct_hdr->Name,
-            (uint32_t)sct_hdr->PointerToRawData,
-            (uint32_t)(sct_hdr->PointerToRawData + sct_hdr->SizeOfRawData),
-            (uint32_t)(sct_hdr->SizeOfRawData ? sct_hdr->SizeOfRawData : sct_hdr->Misc.VirtualSize),
-            (uint32_t)(sct_hdr->VirtualAddress + nt_hdr->OptionalHeader.ImageBase),
-            sct_hdr->Characteristics & IMAGE_SCN_MEM_READ               ? 'r' : '-',
-            sct_hdr->Characteristics & IMAGE_SCN_MEM_WRITE              ? 'w' : '-',
-            sct_hdr->Characteristics & IMAGE_SCN_MEM_EXECUTE            ? 'x' : '-',
-            sct_hdr->Characteristics & IMAGE_SCN_CNT_CODE               ? 'c' : '-',
-            sct_hdr->Characteristics & IMAGE_SCN_CNT_INITIALIZED_DATA   ? 'i' : '-',
-            sct_hdr->Characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA ? 'u' : '-'
+            "%10.8s %8"PRIu32" %8"PRIu32" %8"PRIu32" %8"PRIX32" %c%c%c%c%c%c\n",
+            cur_sct->Name,
+            cur_sct->PointerToRawData,
+            cur_sct->PointerToRawData + cur_sct->SizeOfRawData,
+            cur_sct->SizeOfRawData ? cur_sct->SizeOfRawData : cur_sct->Misc.VirtualSize,
+            cur_sct->VirtualAddress + nt_hdr->OptionalHeader.ImageBase,
+            cur_sct->Characteristics & IMAGE_SCN_MEM_READ               ? 'r' : '-',
+            cur_sct->Characteristics & IMAGE_SCN_MEM_WRITE              ? 'w' : '-',
+            cur_sct->Characteristics & IMAGE_SCN_MEM_EXECUTE            ? 'x' : '-',
+            cur_sct->Characteristics & IMAGE_SCN_CNT_CODE               ? 'c' : '-',
+            cur_sct->Characteristics & IMAGE_SCN_CNT_INITIALIZED_DATA   ? 'i' : '-',
+            cur_sct->Characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA ? 'u' : '-'
         );
 
-        if (sct_hdr->PointerToRawData)
+        if (cur_sct->PointerToRawData)
         {
-            sct_hdr->PointerToRawData -= dos_hdr->e_lfanew + 4;
+            cur_sct->PointerToRawData -= dos_hdr->e_lfanew + 4;
         }
-
-        sct_hdr++;
     }
 
     if (argc < 1)
     {
         fprintf(stderr, "No output file");
-        return 1;
+        return EXIT_FAILURE;
     }
 
     FILE *fh = fopen(argv[0], "wb");
@@ -147,5 +126,5 @@ int pe2obj(void **image, long *length, int argc, char **argv)
 
     printf("Wrote object to %s\n", argv[0]);
 
-    return 0;
+    return EXIT_SUCCESS;
 }

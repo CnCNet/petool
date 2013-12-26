@@ -33,7 +33,7 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    FILE *fh = fopen(argv[1], "rb");
+    FILE *fh = fopen(argv[1], "r+b");
     if (!fh)
     {
         perror("Error opening executable");
@@ -57,7 +57,11 @@ int main(int argc, char **argv)
     if (ret == 0)
     {
         rewind(fh);
-        fwrite(image, length, 1, fh);
+        if (fwrite(image, length, 1, fh) != 1)
+        {
+            perror("Error writing executable");
+            ret = 1;
+        }
     }
 
     fclose(fh);
@@ -95,7 +99,6 @@ int patch_image(int8_t *image, uint32_t address, int8_t *patch, uint32_t length)
 
             memcpy(image + offset, patch, length);
             printf("PATCH  %8d bytes -> %8X\r\n", length, address);
-
             return 1;
         }
 
@@ -164,7 +167,7 @@ int patch(int8_t **image, uint32_t *length, int32_t argc, int8_t **argv)
 
         uint32_t plength = get_uint32(&p);
 
-        if (!patch_image(*image, paddress, patch, plength))
+        if (!patch_image(*image, paddress, p, plength))
         {
             break;
         }

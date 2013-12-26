@@ -83,6 +83,12 @@ int pe2obj(int argc, char **argv)
         {
             cur_sct->PointerToRawData -= dos_hdr->e_lfanew + 4;
         }
+
+        if (cur_sct->Characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA && !(cur_sct->Characteristics & IMAGE_SCN_CNT_INITIALIZED_DATA))
+        {
+            cur_sct->PointerToRawData = 0;
+            cur_sct->SizeOfRawData = 0;
+        }
     }
 
     if (argc < 1)

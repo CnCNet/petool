@@ -2,7 +2,7 @@ TOOLS_DIR ?= .
 BUILD_DIR ?= .
 
 REV        = $(shell sh -c 'git rev-parse --short @{0}')
-CFLAGS     = -m32 -std=c99 -pedantic -O2 -Wall -Wextra -DREV=\"$(REV)\"
+CFLAGS     = -std=c99 -pedantic -O2 -Wall -Wextra -DREV=\"$(REV)\"
 
 TOOLS      = $(foreach e,pe2obj patch,$(BUILD_DIR)/$(e)$(EXT))
 

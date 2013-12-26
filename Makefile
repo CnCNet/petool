@@ -2,7 +2,7 @@ TOOLS_DIR ?= .
 BUILD_DIR ?= .
 
 REV        = $(shell sh -c 'git rev-parse --short @{0}')
-CFLAGS     = -g -std=c99 -pedantic -O2 -Wall -Wextra -DREV=\"$(REV)\"
+CFLAGS     = -std=c99 -pedantic -O2 -Wall -Wextra -DREV=\"$(REV)\"
 TOOLS	   = $(BUILD_DIR)/petool$(EXT)
 
 tools: $(TOOLS)

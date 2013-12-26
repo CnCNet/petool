@@ -1,16 +1,22 @@
+TOOLS_DIR ?= .
 BUILD_DIR ?= .
 
 REV        = $(shell sh -c 'git rev-parse --short @{0}')
+CFLAGS     = -m32 -std=gnu99 -pedantic -O2 -Wall -DREV=\"$(REV)\"
+
+# for windows compile
 CC         = i686-w64-mingw32-gcc
-CFLAGS     = -m32 -std=c99 -pedantic -O2 -Wall -DREV=\"$(REV)\"
 EXT       ?= .exe
 
-TOOLS      = $(BUILD_DIR)/linker$(EXT) $(BUILD_DIR)/petool$(EXT) $(BUILD_DIR)/pe2obj$(EXT)
+TOOLS      = $(foreach e,linker petool pe2obj,$(BUILD_DIR)/$(e)$(EXT))
 
 tools: $(TOOLS)
 
-$(BUILD_DIR)/%$(EXT): src/%.c
+$(BUILD_DIR)/%$(EXT): $(TOOLS_DIR)/src/%.c $(BUILD_DIR)
 	$(CC) $(CFLAGS) -o $@ $<
+
+$(BUILD_DIR):
+	mkdir -p $(BUILD_DIR)
 
 clean:
 	rm -rf $(TOOLS)

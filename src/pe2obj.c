@@ -22,12 +22,7 @@
 #include <unistd.h>
 #include <time.h>
 
-#ifdef _WIN32
-#    define WIN32_LEAN_AND_MEAN
-#    include <windows.h>
-#else
-#    include "pe.h"
-#endif
+#include "pe.h"
 
 int pe2obj(void **image, long *length, int argc, char **argv);
 

@@ -1,3 +1,7 @@
+*.~
+#*#
+
 *.exe
-petools
+petool
 linker
+pe2obj

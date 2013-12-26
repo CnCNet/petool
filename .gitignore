@@ -2,5 +2,4 @@
 #*#
 
 *.exe
-/pe2obj
-/patch
+/petool

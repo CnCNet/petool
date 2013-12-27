@@ -17,41 +17,40 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
+#include <stdint.h>
+#include <inttypes.h>
 #include <ctype.h>
+#include <unistd.h>
 
 #include "pe.h"
 
 int patch_image(int8_t *image, uint32_t address, int8_t *patch, uint32_t length)
 {
-    int i;
-
     PIMAGE_DOS_HEADER dos_hdr       = (void *)image;
     PIMAGE_NT_HEADERS nt_hdr        = (PIMAGE_NT_HEADERS)(image + dos_hdr->e_lfanew);
-    PIMAGE_SECTION_HEADER sct_hdr   = IMAGE_FIRST_SECTION(nt_hdr);
 
-    for (i = 0; i < nt_hdr->FileHeader.NumberOfSections; i++)
+    for (int i = 0; i < nt_hdr->FileHeader.NumberOfSections; i++)
     {
+        PIMAGE_SECTION_HEADER sct_hdr = IMAGE_FIRST_SECTION(nt_hdr) + i;
+
         if (sct_hdr->VirtualAddress + nt_hdr->OptionalHeader.ImageBase <= address && address < sct_hdr->VirtualAddress + nt_hdr->OptionalHeader.ImageBase + sct_hdr->SizeOfRawData)
         {
             uint32_t offset = sct_hdr->PointerToRawData + (address - (sct_hdr->VirtualAddress + nt_hdr->OptionalHeader.ImageBase));
 
             if (sct_hdr->SizeOfRawData < length)
             {
-                fprintf(stderr, "Error: section length (%u) is less than patch length (%d), maybe expand the image a bit more?\r\n", (unsigned int)sct_hdr->SizeOfRawData, length);
-                return 0;
+                fprintf(stderr, "Error: section length (%"PRIu32") is less than patch length (%"PRId32"), maybe expand the image a bit more?\n", sct_hdr->SizeOfRawData, length);
+                return EXIT_SUCCESS;
             }
 
             memcpy(image + offset, patch, length);
-            printf("PATCH  %8d bytes -> %8X\r\n", length, address);
-            return 1;
+            printf("PATCH  %8"PRId32" bytes -> %8"PRIX32"\n", length, address);
+            return EXIT_FAILURE;
         }
-
-        sct_hdr++;
     }
 
-    fprintf(stderr, "Error: memory address %08X not found in image\r\n", address);
-    return 0;
+    fprintf(stderr, "Error: memory address %08"PRIX32" not found in image\n", address);
+    return EXIT_SUCCESS;
 }
 
 uint32_t get_uint32(int8_t * *p)
@@ -73,7 +72,7 @@ int patch(int argc, char **argv)
     if (!fh)
     {
         perror("Error opening executable");
-        return 1;
+        return EXIT_FAILURE;
     }
 
     fseek(fh, 0L, SEEK_END);
@@ -85,12 +84,11 @@ int patch(int argc, char **argv)
     if (fread(image, length, 1, fh) != 1)
     {
         perror("Error reading executable");
-        return 1;
+        return EXIT_FAILURE;
     }
 
     PIMAGE_DOS_HEADER dos_hdr = (void *)image;
     PIMAGE_NT_HEADERS nt_hdr = (void *)(image + dos_hdr->e_lfanew);
-    PIMAGE_SECTION_HEADER sct_hdr = IMAGE_FIRST_SECTION(nt_hdr);
     char *section = argc > 2 ? (char *)argv[2] : ".patch";
 
     if (length < 512)
@@ -98,7 +96,7 @@ int patch(int argc, char **argv)
         fprintf(stderr, "File too small.\n");
         fclose(fh);
         free(image);
-        return 1;
+        return EXIT_FAILURE;
     }
 
     if (dos_hdr->e_magic != IMAGE_DOS_SIGNATURE)
@@ -106,7 +104,7 @@ int patch(int argc, char **argv)
         fprintf(stderr, "File DOS signature invalid.\n");
         fclose(fh);
         free(image);
-        return 1;
+        return EXIT_FAILURE;
     }
 
     if (nt_hdr->Signature != IMAGE_NT_SIGNATURE)
@@ -114,7 +112,7 @@ int patch(int argc, char **argv)
         fprintf(stderr, "File NT signature invalid.\n");
         fclose(fh);
         free(image);
-        return 1;
+        return EXIT_FAILURE;
     }
 
     int8_t *patch = NULL;
@@ -122,6 +120,8 @@ int patch(int argc, char **argv)
 
     for (int32_t i = 0; i < nt_hdr->FileHeader.NumberOfSections; i++)
     {
+        PIMAGE_SECTION_HEADER sct_hdr = IMAGE_FIRST_SECTION(nt_hdr) + i;
+
         if (strcmp(section, (char *)sct_hdr->Name) == 0)
         {
             patch = image + sct_hdr->PointerToRawData;
@@ -137,36 +137,27 @@ int patch(int argc, char **argv)
         fprintf(stderr, "No '%s' section in given PE image.\n", section);
         fclose(fh);
         free(image);
-        return 1;
+        return EXIT_FAILURE;
     }
 
-    int8_t *p = patch;
-    while (p < patch + patch_len)
+    for (int8_t *p = patch; p < patch + patch_len;)
     {
         uint32_t paddress = get_uint32(&p);
-
-        if (paddress == 0)
-        {
-            break;
-        }
+        if (paddress == 0)                             break;
 
         uint32_t plength = get_uint32(&p);
-
-        if (!patch_image(image, paddress, p, plength))
-        {
-            break;
-        }
+        if (!patch_image(image, paddress, p, plength)) break;
 
         p += plength;
     }
 
-    int ret = 0;
+    int ret = EXIT_FAILURE;
 
     rewind(fh);
     if (fwrite(image, length, 1, fh) != 1)
     {
         perror("Error writing executable");
-        ret = 1;
+        ret = EXIT_SUCCESS;
     }
 
     fclose(fh);

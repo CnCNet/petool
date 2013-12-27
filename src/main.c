@@ -15,6 +15,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 int dump(int argc, char **argv);
@@ -22,38 +23,40 @@ int genlds(int argc, char **argv);
 int pe2obj(int argc, char **argv);
 int patch(int argc, char **argv);
 
+void help(char *progname)
+{
+    fprintf(stderr, "petool git~%s (c) 2013 Toni Spets\n\n", REV);
+    fprintf(stderr, "usage: %s <command> [args ...]\n", progname);
+    fprintf(stderr, "commands:"                                             "\n"
+	    "dump   -- dump information about section of executable"        "\n"
+            "genlds -- generate linker script for use with pe2obj"          "\n"
+            "pe2obj -- convert executable into object file"                 "\n"
+            "patch  -- perform patches from .PATCH section"                 "\n"
+            "help   -- this information"                                    "\n"
+    );
+}
+
 int main(int argc, char **argv)
 {
     if (argc < 2)
     {
-        fprintf(stderr, "petool git~%s (c) 2013 Toni Spets\n\n", REV);
-        fprintf(stderr, "usage: %s <command> [args ...]\n", argv[0]);
-        fprintf(stderr, "commands: dump genlds pe2obj patch\n");
-        return 1;
+	fprintf(stderr, "No command given: please give valid command name as first argument\n\n");
+	help(argv[0]);
+	return EXIT_FAILURE;
     }
-
-    int ret = 1;
-
-    if (strcmp(argv[1], "dump") == 0)
+    else if (strcmp(argv[1], "dump")   == 0) return dump   (argc - 1, argv + 1);
+    else if (strcmp(argv[1], "genlds") == 0) return genlds (argc - 1, argv + 1);
+    else if (strcmp(argv[1], "pe2obj") == 0) return pe2obj (argc - 1, argv + 1);
+    else if (strcmp(argv[1], "patch")  == 0) return patch  (argc - 1, argv + 1);
+    else if (strcmp(argv[1], "help")   == 0)
     {
-        ret = dump(argc - 1, &argv[1]);
-    }
-    else if (strcmp(argv[1], "genlds") == 0)
-    {
-        ret = genlds(argc - 1, &argv[1]);
-    }
-    else if (strcmp(argv[1], "pe2obj") == 0)
-    {
-        ret = pe2obj(argc - 1, &argv[1]);
-    }
-    else if (strcmp(argv[1], "patch") == 0)
-    {
-        ret = patch(argc - 1, &argv[1]);
+	help(argv[0]);
+	return EXIT_SUCCESS;
     }
     else
     {
-        fprintf(stderr, "Unknown command: %s\n", argv[1]);
+	fprintf(stderr, "Unknown command: %s\n", argv[1]);
+	help(argv[0]);
+	return EXIT_FAILURE;
     }
-
-    return ret;
 }

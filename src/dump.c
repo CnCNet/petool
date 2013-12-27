@@ -19,62 +19,44 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <inttypes.h>
 #include <ctype.h>
 #include <unistd.h>
 #include <time.h>
 
 #include "pe.h"
+#include "cleanup.h"
 
 int dump(int argc, char **argv)
 {
-    if (argc < 2)
-    {
-        fprintf(stderr, "usage: petool dump <image>\n");
-        return EXIT_FAILURE;
-    }
+    // decleration before more meaningful initialization for cleanup
+    int     ret   = EXIT_SUCCESS;
+    FILE   *fh    = NULL;
+    int8_t *image = NULL;
 
-    FILE *fh = fopen(argv[1], "rb");
-    if (!fh)
-    {
-        perror("Error opening executable");
-        return EXIT_FAILURE;
-    }
+    ENSURE(argc < 2, "usage: petool dump <image>");
+
+    fh = fopen(argv[1], "rb");
+    ENSURE_PERROR(!fh, "Error opening executable");
 
     fseek(fh, 0L, SEEK_END);
     uint32_t length = ftell(fh);
     rewind(fh);
 
-    int8_t *image = malloc(length);
+    image = malloc(length);
 
-    if (fread(image, length, 1, fh) != 1)
-    {
-        perror("Error reading executable");
-        return EXIT_FAILURE;
-    }
+    ENSURE_PERROR(fread(image, length, 1, fh) != 1, "Error reading executable");
 
     fclose(fh);
+    fh = NULL; // for cleanup;
 
     PIMAGE_DOS_HEADER dos_hdr = (void *)image;
     PIMAGE_NT_HEADERS nt_hdr = (void *)(image + dos_hdr->e_lfanew);
 
-    if (length < 512)
-    {
-        fprintf(stderr, "File too small.\n");
-        return EXIT_FAILURE;
-    }
-
-    if (dos_hdr->e_magic != IMAGE_DOS_SIGNATURE)
-    {
-        fprintf(stderr, "File DOS signature invalid.\n");
-        return EXIT_FAILURE;
-    }
-
-    if (nt_hdr->Signature != IMAGE_NT_SIGNATURE)
-    {
-        fprintf(stderr, "File NT signature invalid.\n");
-        return EXIT_FAILURE;
-    }
+    ENSURE(length < 512,                            "File too small.\n");
+    ENSURE(dos_hdr->e_magic != IMAGE_DOS_SIGNATURE, "File DOS signature invalid.\n");
+    ENSURE(nt_hdr->Signature != IMAGE_NT_SIGNATURE, "File NT signature invalid.\n");
 
     printf("   section    start      end   length    vaddr  flags\n");
     printf("-----------------------------------------------------\n");
@@ -98,7 +80,8 @@ int dump(int argc, char **argv)
         );
     }
 
-    free(image);
-
-    return EXIT_SUCCESS;
+cleanup:
+    if (image) free(image);
+    if (fh)    fclose(fh);
+    return ret;
 }

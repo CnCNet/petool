@@ -16,6 +16,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <stdint.h>
 #include <inttypes.h>
@@ -23,6 +24,7 @@
 #include <unistd.h>
 
 #include "pe.h"
+#include "cleanup.h"
 
 int patch_image(int8_t *image, uint32_t address, int8_t *patch, uint32_t length)
 {
@@ -62,58 +64,28 @@ uint32_t get_uint32(int8_t * *p)
 
 int patch(int argc, char **argv)
 {
-    if (argc < 2)
-    {
-        fprintf(stderr, "usage: petool patch <image> [section]\n");
-        return EXIT_FAILURE;
-    }
+    // decleration before more meaningful initialization for cleanup
+    int     ret   = EXIT_SUCCESS;
+    FILE   *fh    = NULL;
+    int8_t *image = NULL;
 
-    FILE *fh = fopen(argv[1], "r+b");
-    if (!fh)
-    {
-        perror("Error opening executable");
-        return EXIT_FAILURE;
-    }
+    ENSURE(argc < 2, "usage: petool patch <image> [section]\n");
+
+    fh = fopen(argv[1], "r+b");
+    ENSURE_PERROR(!fh, "Error opening executable");
 
     fseek(fh, 0L, SEEK_END);
     uint32_t length = ftell(fh);
     rewind(fh);
 
-    int8_t *image = malloc(length);
+    image = malloc(length);
 
-    if (fread(image, length, 1, fh) != 1)
-    {
-        perror("Error reading executable");
-        return EXIT_FAILURE;
-    }
+    ENSURE_PERROR(fread(image, length, 1, fh) != 1, "Error reading executable");
 
     PIMAGE_DOS_HEADER dos_hdr = (void *)image;
     PIMAGE_NT_HEADERS nt_hdr = (void *)(image + dos_hdr->e_lfanew);
     char *section = argc > 2 ? (char *)argv[2] : ".patch";
 
-    if (length < 512)
-    {
-        fprintf(stderr, "File too small.\n");
-        fclose(fh);
-        free(image);
-        return EXIT_FAILURE;
-    }
-
-    if (dos_hdr->e_magic != IMAGE_DOS_SIGNATURE)
-    {
-        fprintf(stderr, "File DOS signature invalid.\n");
-        fclose(fh);
-        free(image);
-        return EXIT_FAILURE;
-    }
-
-    if (nt_hdr->Signature != IMAGE_NT_SIGNATURE)
-    {
-        fprintf(stderr, "File NT signature invalid.\n");
-        fclose(fh);
-        free(image);
-        return EXIT_FAILURE;
-    }
 
     int8_t *patch = NULL;
     int32_t patch_len = 0;
@@ -132,13 +104,7 @@ int patch(int argc, char **argv)
         sct_hdr++;
     }
 
-    if (patch == NULL)
-    {
-        fprintf(stderr, "No '%s' section in given PE image.\n", section);
-        fclose(fh);
-        free(image);
-        return EXIT_FAILURE;
-    }
+    ENSURE_VA(patch == NULL, "No '%s' section in given PE image.\n", section);
 
     for (int8_t *p = patch; p < patch + patch_len;)
     {
@@ -151,17 +117,11 @@ int patch(int argc, char **argv)
         p += plength;
     }
 
-    int ret = EXIT_FAILURE;
-
     rewind(fh);
-    if (fwrite(image, length, 1, fh) != 1)
-    {
-        perror("Error writing executable");
-        ret = EXIT_SUCCESS;
-    }
+    ENSURE_PERROR(fwrite(image, length, 1, fh) != 1, "Error writing executable");
 
-    fclose(fh);
-    free(image);
-
+cleanup:
+    if (image) free(image);
+    if (fh)    fclose(fh);
     return ret;
 }

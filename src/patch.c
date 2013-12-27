@@ -104,7 +104,7 @@ int patch(int argc, char **argv)
         sct_hdr++;
     }
 
-    ENSURE_VA(patch == NULL, "No '%s' section in given PE image.\n", section);
+    ENSURE(patch == NULL, "No '%s' section in given PE image.\n", section);
 
     for (int8_t *p = patch; p < patch + patch_len;)
     {

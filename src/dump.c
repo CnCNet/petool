@@ -35,7 +35,7 @@ int dump(int argc, char **argv)
     FILE   *fh    = NULL;
     int8_t *image = NULL;
 
-    ENSURE(argc < 2, "usage: petool dump <image>");
+    ENSURE(argc < 2, "usage: petool dump <image>\n");
 
     fh = fopen(argv[1], "rb");
     ENSURE_PERROR(!fh, "Error opening executable");

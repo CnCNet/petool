@@ -31,9 +31,9 @@ void help(char *progname)
     fprintf(stderr, "usage: %s <command> [args ...]\n\n", progname);
     fprintf(stderr, "commands:"                                                 "\n"
             "    dump   -- dump information about section of executable"        "\n"
-            "    genlds -- generate linker script for use with pe2obj"          "\n"
-            "    pe2obj -- convert executable into object file"                 "\n"
-            "    patch  -- perform patches from .patch section"                 "\n"
+            "    genlds -- generate GNU ld script for re-linking executable"    "\n"
+            "    pe2obj -- convert PE executable into win32 object file"        "\n"
+            "    patch  -- apply a patch set from the .patch section"           "\n"
             "    setdd  -- set any DataDirectory in PE header"                  "\n"
             "    setvs  -- set VirtualSize for a section"                       "\n"
             "    help   -- this information"                                    "\n"

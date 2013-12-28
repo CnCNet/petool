@@ -50,6 +50,7 @@ int setvs(int argc, char **argv)
     FAIL_IF(nt_hdr->Signature != IMAGE_NT_SIGNATURE,    "File NT signature invalid.\n");
     FAIL_IF(vs < 1,                                     "VirtualSize can't be zero.\n");
 
+    uint32_t diff = 0;
     for (int32_t i = 0; i < nt_hdr->FileHeader.NumberOfSections; i++)
     {
         PIMAGE_SECTION_HEADER sct_hdr = IMAGE_FIRST_SECTION(nt_hdr) + i;
@@ -57,6 +58,7 @@ int setvs(int argc, char **argv)
         if (strcmp(argv[2], (char *)sct_hdr->Name) == 0)
         {
             FAIL_IF(vs < sct_hdr->SizeOfRawData,"VirtualSize can't be smaller than raw size.\n");
+            diff = vs - sct_hdr->Misc.VirtualSize;
             sct_hdr->Misc.VirtualSize = vs;
             vs = 0;
             break;
@@ -64,6 +66,9 @@ int setvs(int argc, char **argv)
     }
 
     FAIL_IF(vs != 0, "No '%s' section in given PE image.\n", argv[2]);
+
+    /* keep image size updated */
+    nt_hdr->OptionalHeader.SizeOfImage += diff;
 
     /* FIXME: implement checksum calculation */
     nt_hdr->OptionalHeader.CheckSum = 0;

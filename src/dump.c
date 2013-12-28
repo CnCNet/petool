@@ -73,6 +73,11 @@ int dump(int argc, char **argv)
         );
     }
 
+    if (nt_hdr->OptionalHeader.NumberOfRvaAndSizes >= 2)
+    {
+        printf("Import Table: %8"PRIX32" (%"PRIu32" bytes)\n", nt_hdr->OptionalHeader.DataDirectory[1].VirtualAddress, nt_hdr->OptionalHeader.DataDirectory[1].Size);
+    }
+
 cleanup:
     if (image) free(image);
     if (fh)    fclose(fh);

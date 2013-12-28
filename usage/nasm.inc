@@ -1,11 +1,6 @@
 ; Suggested macros for petools with nasm
 ; see README.md for a general introduction
 
-; Switch to the section used to store patches.  Only macros begining with "@"
-; should be used here. Likewise such macros should not be used in normal code or
-; data sections.
-section .patch
-
 ; @CLEAR <start address> <repeated byte> <end address>
 %macro @CLEAR 3
     dd %1                 ; patch address
@@ -30,6 +25,11 @@ section .patch
     dd %2 - %1 - 5        ; relative offset
 %endmacro
 
+; Switch to the section used to store patches. Only macros begining with "@"
+; should be used here. Likewise such macros should not be used in normal code or
+; data sections.
+
+;section .patch
 
 %comment
 ; an example:

@@ -51,19 +51,20 @@ int dump(int argc, char **argv)
     NO_FAIL(dos_hdr->e_magic != IMAGE_DOS_SIGNATURE, "File DOS signature invalid.\n");
     NO_FAIL(nt_hdr->Signature != IMAGE_NT_SIGNATURE, "File NT signature invalid.\n");
 
-    printf("   section    start      end   length    vaddr  flags\n");
-    printf("-----------------------------------------------------\n");
+    printf(" section    start      end   length    vaddr    vsize  flags\n");
+    printf("------------------------------------------------------------\n");
 
     for (int i = 0; i < nt_hdr->FileHeader.NumberOfSections; i++)
     {
         const PIMAGE_SECTION_HEADER cur_sct = IMAGE_FIRST_SECTION(nt_hdr) + i;
         printf(
-            "%10.8s %8"PRIu32" %8"PRIu32" %8"PRIu32" %8"PRIX32" %c%c%c%c%c%c\n",
+            "%8.8s %8"PRIu32" %8"PRIu32" %8"PRIu32" %8"PRIX32" %8"PRIu32" %c%c%c%c%c%c\n",
             cur_sct->Name,
             cur_sct->PointerToRawData,
             cur_sct->PointerToRawData + cur_sct->SizeOfRawData,
-            cur_sct->SizeOfRawData ? cur_sct->SizeOfRawData : cur_sct->Misc.VirtualSize,
+            cur_sct->SizeOfRawData,
             cur_sct->VirtualAddress + nt_hdr->OptionalHeader.ImageBase,
+            cur_sct->Misc.VirtualSize,
             cur_sct->Characteristics & IMAGE_SCN_MEM_READ               ? 'r' : '-',
             cur_sct->Characteristics & IMAGE_SCN_MEM_WRITE              ? 'w' : '-',
             cur_sct->Characteristics & IMAGE_SCN_MEM_EXECUTE            ? 'x' : '-',

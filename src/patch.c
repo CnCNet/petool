@@ -109,6 +109,9 @@ int patch(int argc, char **argv)
         p += plength;
     }
 
+    /* FIXME: implement checksum calculation */
+    nt_hdr->OptionalHeader.CheckSum = 0;
+
     rewind(fh);
     NO_FAIL_PERROR(fwrite(image, length, 1, fh) != 1, "Error writing executable");
 

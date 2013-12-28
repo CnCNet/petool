@@ -18,7 +18,7 @@ int open_and_read(FILE **fh, int8_t **image, uint32_t *length,
     NO_FAIL(!*fh, "Could not open executable\n");
 
     NO_FAIL_PERROR(fseek(*fh, 0L, SEEK_END),
-		   "Need seekable file for executable, not stream");
+                   "Need seekable file for executable, not stream");
 
     uint32_t len = ftell(*fh);
     rewind(*fh);

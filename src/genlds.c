@@ -32,7 +32,7 @@ int genlds(int argc, char **argv)
 {
     // decleration before more meaningful initialization for cleanup
     int     ret   = EXIT_SUCCESS;
-    FILE   *fh   = NULL;
+    FILE   *fh    = NULL;
     int8_t *image = NULL;
 
     NO_FAIL(argc < 2, "usage: petool genlds <image>\n");

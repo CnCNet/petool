@@ -26,13 +26,13 @@ int patch(int argc, char **argv);
 void help(char *progname)
 {
     fprintf(stderr, "petool git~%s (c) 2013 Toni Spets\n\n", REV);
-    fprintf(stderr, "usage: %s <command> [args ...]\n", progname);
-    fprintf(stderr, "commands:"                                             "\n"
-	    "dump   -- dump information about section of executable"        "\n"
-            "genlds -- generate linker script for use with pe2obj"          "\n"
-            "pe2obj -- convert executable into object file"                 "\n"
-            "patch  -- perform patches from .PATCH section"                 "\n"
-            "help   -- this information"                                    "\n"
+    fprintf(stderr, "usage: %s <command> [args ...]\n\n", progname);
+    fprintf(stderr, "commands:"                                                 "\n"
+            "    dump   -- dump information about section of executable"        "\n"
+            "    genlds -- generate linker script for use with pe2obj"          "\n"
+            "    pe2obj -- convert executable into object file"                 "\n"
+            "    patch  -- perform patches from .patch section"                 "\n"
+            "    help   -- this information"                                    "\n"
     );
 }
 
@@ -40,9 +40,9 @@ int main(int argc, char **argv)
 {
     if (argc < 2)
     {
-	fprintf(stderr, "No command given: please give valid command name as first argument\n\n");
-	help(argv[0]);
-	return EXIT_FAILURE;
+        fprintf(stderr, "No command given: please give valid command name as first argument\n\n");
+        help(argv[0]);
+        return EXIT_FAILURE;
     }
     else if (strcmp(argv[1], "dump")   == 0) return dump   (argc - 1, argv + 1);
     else if (strcmp(argv[1], "genlds") == 0) return genlds (argc - 1, argv + 1);
@@ -50,13 +50,13 @@ int main(int argc, char **argv)
     else if (strcmp(argv[1], "patch")  == 0) return patch  (argc - 1, argv + 1);
     else if (strcmp(argv[1], "help")   == 0)
     {
-	help(argv[0]);
-	return EXIT_SUCCESS;
+        help(argv[0]);
+        return EXIT_SUCCESS;
     }
     else
     {
-	fprintf(stderr, "Unknown command: %s\n", argv[1]);
-	help(argv[0]);
-	return EXIT_FAILURE;
+        fprintf(stderr, "Unknown command: %s\n", argv[1]);
+        help(argv[0]);
+        return EXIT_FAILURE;
     }
 }

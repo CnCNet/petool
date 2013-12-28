@@ -15,18 +15,18 @@ int open_and_read(FILE **fh, int8_t **image, uint32_t *length,
     int ret = EXIT_SUCCESS;
 
     *fh = fopen(executable, fopen_attr);
-    NO_FAIL_PERROR(!*fh, "Could not open executable");
+    FAIL_IF_PERROR(!*fh, "Could not open executable");
 
-    NO_FAIL_PERROR(fseek(*fh, 0L, SEEK_END),
+    FAIL_IF_PERROR(fseek(*fh, 0L, SEEK_END),
                    "Need seekable file for executable, not stream");
 
     uint32_t len = ftell(*fh);
     rewind(*fh);
 
     *image = malloc(len);
-    NO_FAIL(!*image, "Failed to allocate memory to read executable with\n");
+    FAIL_IF(!*image, "Failed to allocate memory to read executable with\n");
 
-    NO_FAIL_PERROR(fread(*image, len, 1, *fh) != 1, "Error reading executable");
+    FAIL_IF_PERROR(fread(*image, len, 1, *fh) != 1, "Error reading executable");
 
     if (length) *length = len;
 

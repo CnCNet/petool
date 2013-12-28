@@ -34,21 +34,21 @@ int setvs(int argc, char **argv)
     FILE   *fh    = NULL;
     int8_t *image = NULL;
 
-    NO_FAIL(argc < 4, "usage: petool setvs <image> <section> <VirtualSize>\n");
+    FAIL_IF(argc < 4, "usage: petool setvs <image> <section> <VirtualSize>\n");
 
     uint32_t vs   = strtol(argv[3], NULL, 0);
 
     uint32_t length;
-    NO_FAIL_SILENT(open_and_read(&fh, &image, &length, argv[1], "r+b"));
+    FAIL_IF_SILENT(open_and_read(&fh, &image, &length, argv[1], "r+b"));
 
     PIMAGE_DOS_HEADER dos_hdr = (void *)image;
     PIMAGE_NT_HEADERS nt_hdr = (void *)(image + dos_hdr->e_lfanew);
 
-    NO_FAIL(length < sizeof (IMAGE_DOS_HEADER),         "File too small.\n");
-    NO_FAIL(dos_hdr->e_magic != IMAGE_DOS_SIGNATURE,    "File DOS signature invalid.\n");
-    NO_FAIL(dos_hdr->e_lfanew == 0,                     "NT header missing.\n");
-    NO_FAIL(nt_hdr->Signature != IMAGE_NT_SIGNATURE,    "File NT signature invalid.\n");
-    NO_FAIL(vs < 1,                                     "VirtualSize can't be zero.\n");
+    FAIL_IF(length < sizeof (IMAGE_DOS_HEADER),         "File too small.\n");
+    FAIL_IF(dos_hdr->e_magic != IMAGE_DOS_SIGNATURE,    "File DOS signature invalid.\n");
+    FAIL_IF(dos_hdr->e_lfanew == 0,                     "NT header missing.\n");
+    FAIL_IF(nt_hdr->Signature != IMAGE_NT_SIGNATURE,    "File NT signature invalid.\n");
+    FAIL_IF(vs < 1,                                     "VirtualSize can't be zero.\n");
 
     for (int32_t i = 0; i < nt_hdr->FileHeader.NumberOfSections; i++)
     {
@@ -56,20 +56,20 @@ int setvs(int argc, char **argv)
 
         if (strcmp(argv[2], (char *)sct_hdr->Name) == 0)
         {
-            NO_FAIL(vs < sct_hdr->SizeOfRawData,"VirtualSize can't be smaller than raw size.\n");
+            FAIL_IF(vs < sct_hdr->SizeOfRawData,"VirtualSize can't be smaller than raw size.\n");
             sct_hdr->Misc.VirtualSize = vs;
             vs = 0;
             break;
         }
     }
 
-    NO_FAIL(vs != 0, "No '%s' section in given PE image.\n", argv[2]);
+    FAIL_IF(vs != 0, "No '%s' section in given PE image.\n", argv[2]);
 
     /* FIXME: implement checksum calculation */
     nt_hdr->OptionalHeader.CheckSum = 0;
 
     rewind(fh);
-    NO_FAIL_PERROR(fwrite(image, length, 1, fh) != 1, "Error writing executable");
+    FAIL_IF_PERROR(fwrite(image, length, 1, fh) != 1, "Error writing executable");
 
 cleanup:
     if (image) free(image);

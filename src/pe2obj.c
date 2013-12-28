@@ -35,10 +35,10 @@ int pe2obj(int argc, char **argv)
     FILE   *fh    = NULL;
     int8_t *image = NULL;
 
-    NO_FAIL(argc != 3, "usage: petool pe2obj <in> <out>\n");
+    FAIL_IF(argc != 3, "usage: petool pe2obj <in> <out>\n");
 
     uint32_t length;
-    NO_FAIL_SILENT(open_and_read(&fh, &image, &length, argv[1], "rb"));
+    FAIL_IF_SILENT(open_and_read(&fh, &image, &length, argv[1], "rb"));
 
 
     fclose(fh);
@@ -47,9 +47,9 @@ int pe2obj(int argc, char **argv)
     PIMAGE_DOS_HEADER dos_hdr = (void *)image;
     PIMAGE_NT_HEADERS nt_hdr = (void *)(image + dos_hdr->e_lfanew);
 
-    NO_FAIL(length < 512,                            "File too small.\n");
-    NO_FAIL(dos_hdr->e_magic != IMAGE_DOS_SIGNATURE, "File DOS signature invalid.\n");
-    NO_FAIL(nt_hdr->Signature != IMAGE_NT_SIGNATURE, "File NT signature invalid.\n");
+    FAIL_IF(length < 512,                            "File too small.\n");
+    FAIL_IF(dos_hdr->e_magic != IMAGE_DOS_SIGNATURE, "File DOS signature invalid.\n");
+    FAIL_IF(nt_hdr->Signature != IMAGE_NT_SIGNATURE, "File NT signature invalid.\n");
 
     for (int i = 0; i < nt_hdr->FileHeader.NumberOfSections; i++)
     {
@@ -67,9 +67,9 @@ int pe2obj(int argc, char **argv)
     }
 
     fh = fopen(argv[2], "wb");
-    NO_FAIL_PERROR(!fh, "Error opening output file");
+    FAIL_IF_PERROR(!fh, "Error opening output file");
 
-    NO_FAIL_PERROR(fwrite((char *)image + (dos_hdr->e_lfanew + 4),
+    FAIL_IF_PERROR(fwrite((char *)image + (dos_hdr->e_lfanew + 4),
                          length - (dos_hdr->e_lfanew + 4),
                          1,
                          fh) != 1,

@@ -70,10 +70,10 @@ int patch(int argc, char **argv)
     FILE   *fh    = NULL;
     int8_t *image = NULL;
 
-    NO_FAIL(argc < 2, "usage: petool patch <image> [section]\n");
+    FAIL_IF(argc < 2, "usage: petool patch <image> [section]\n");
 
     uint32_t length;
-    NO_FAIL_SILENT(open_and_read(&fh, &image, &length, argv[1], "r+b"));
+    FAIL_IF_SILENT(open_and_read(&fh, &image, &length, argv[1], "r+b"));
 
     PIMAGE_DOS_HEADER dos_hdr = (void *)image;
     PIMAGE_NT_HEADERS nt_hdr = (void *)(image + dos_hdr->e_lfanew);
@@ -96,7 +96,7 @@ int patch(int argc, char **argv)
         sct_hdr++;
     }
 
-    NO_FAIL(patch == NULL, "No '%s' section in given PE image.\n", section);
+    FAIL_IF(patch == NULL, "No '%s' section in given PE image.\n", section);
 
     for (int8_t *p = patch; p < patch + patch_len;)
     {
@@ -113,7 +113,7 @@ int patch(int argc, char **argv)
     nt_hdr->OptionalHeader.CheckSum = 0;
 
     rewind(fh);
-    NO_FAIL_PERROR(fwrite(image, length, 1, fh) != 1, "Error writing executable");
+    FAIL_IF_PERROR(fwrite(image, length, 1, fh) != 1, "Error writing executable");
 
 cleanup:
     if (image) free(image);

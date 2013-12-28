@@ -35,10 +35,10 @@ int genlds(int argc, char **argv)
     FILE   *fh    = NULL;
     int8_t *image = NULL;
 
-    NO_FAIL(argc < 2, "usage: petool genlds <image>\n");
+    FAIL_IF(argc < 2, "usage: petool genlds <image>\n");
 
     uint32_t length;
-    NO_FAIL_SILENT(open_and_read(&fh, &image, &length, argv[1], "rb"));
+    FAIL_IF_SILENT(open_and_read(&fh, &image, &length, argv[1], "rb"));
 
     fclose(fh);
     fh = NULL; // for cleanup
@@ -46,9 +46,9 @@ int genlds(int argc, char **argv)
     PIMAGE_DOS_HEADER dos_hdr = (void *)image;
     PIMAGE_NT_HEADERS nt_hdr = (void *)(image + dos_hdr->e_lfanew);
 
-    NO_FAIL(length < 512,                            "File too small.\n");
-    NO_FAIL(dos_hdr->e_magic != IMAGE_DOS_SIGNATURE, "File DOS signature invalid.\n");
-    NO_FAIL(nt_hdr->Signature != IMAGE_NT_SIGNATURE, "File NT signature invalid.\n");
+    FAIL_IF(length < 512,                            "File too small.\n");
+    FAIL_IF(dos_hdr->e_magic != IMAGE_DOS_SIGNATURE, "File DOS signature invalid.\n");
+    FAIL_IF(nt_hdr->Signature != IMAGE_NT_SIGNATURE, "File NT signature invalid.\n");
 
     printf("/* GNU ld linker script for %s */\n", argv[1]);
     printf("start = 0x%"PRIX32";\n", nt_hdr->OptionalHeader.ImageBase + nt_hdr->OptionalHeader.AddressOfEntryPoint);

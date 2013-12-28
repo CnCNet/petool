@@ -34,21 +34,21 @@ int setdd(int argc, char **argv)
     FILE   *fh    = NULL;
     int8_t *image = NULL;
 
-    NO_FAIL(argc < 5, "usage: petool setdd <image> <#DataDirectory> <VirtualAddress> <Size>\n");
+    FAIL_IF(argc < 5, "usage: petool setdd <image> <#DataDirectory> <VirtualAddress> <Size>\n");
 
     uint32_t dd   = strtol(argv[2], NULL, 0);
 
     uint32_t length;
-    NO_FAIL_SILENT(open_and_read(&fh, &image, &length, argv[1], "r+b"));
+    FAIL_IF_SILENT(open_and_read(&fh, &image, &length, argv[1], "r+b"));
 
     PIMAGE_DOS_HEADER dos_hdr = (void *)image;
     PIMAGE_NT_HEADERS nt_hdr = (void *)(image + dos_hdr->e_lfanew);
 
-    NO_FAIL(length < sizeof (IMAGE_DOS_HEADER),               "File too small.\n");
-    NO_FAIL(dos_hdr->e_magic != IMAGE_DOS_SIGNATURE,          "File DOS signature invalid.\n");
-    NO_FAIL(dos_hdr->e_lfanew == 0,                           "NT header missing.\n");
-    NO_FAIL(nt_hdr->Signature != IMAGE_NT_SIGNATURE,          "File NT signature invalid.\n");
-    NO_FAIL(nt_hdr->OptionalHeader.NumberOfRvaAndSizes <= dd, "Data directory #%"PRIu32" is missing.\n", dd);
+    FAIL_IF(length < sizeof (IMAGE_DOS_HEADER),               "File too small.\n");
+    FAIL_IF(dos_hdr->e_magic != IMAGE_DOS_SIGNATURE,          "File DOS signature invalid.\n");
+    FAIL_IF(dos_hdr->e_lfanew == 0,                           "NT header missing.\n");
+    FAIL_IF(nt_hdr->Signature != IMAGE_NT_SIGNATURE,          "File NT signature invalid.\n");
+    FAIL_IF(nt_hdr->OptionalHeader.NumberOfRvaAndSizes <= dd, "Data directory #%"PRIu32" is missing.\n", dd);
 
     nt_hdr->OptionalHeader.DataDirectory[dd].VirtualAddress = strtol(argv[3], NULL, 0);
     nt_hdr->OptionalHeader.DataDirectory[dd].Size = strtol(argv[4], NULL, 0);
@@ -57,7 +57,7 @@ int setdd(int argc, char **argv)
     nt_hdr->OptionalHeader.CheckSum = 0;
 
     rewind(fh);
-    NO_FAIL_PERROR(fwrite(image, length, 1, fh) != 1, "Error writing executable");
+    FAIL_IF_PERROR(fwrite(image, length, 1, fh) != 1, "Error writing executable");
 
 cleanup:
     if (image) free(image);

@@ -27,6 +27,7 @@
 
 #include "pe.h"
 #include "cleanup.h"
+#include "common.h"
 
 int dump(int argc, char **argv)
 {
@@ -35,28 +36,20 @@ int dump(int argc, char **argv)
     FILE   *fh    = NULL;
     int8_t *image = NULL;
 
-    ENSURE(argc < 2, "usage: petool dump <image>\n");
+    NO_FAIL(argc < 2, "usage: petool dump <image>\n");
 
-    fh = fopen(argv[1], "rb");
-    ENSURE_PERROR(!fh, "Error opening executable");
-
-    fseek(fh, 0L, SEEK_END);
-    uint32_t length = ftell(fh);
-    rewind(fh);
-
-    image = malloc(length);
-
-    ENSURE_PERROR(fread(image, length, 1, fh) != 1, "Error reading executable");
+    uint32_t length;
+    NO_FAIL_SILENT(open_and_read(&fh, &image, &length, argv[1], "rb"));
 
     fclose(fh);
-    fh = NULL; // for cleanup;
+    fh = NULL; // for cleanup
 
     PIMAGE_DOS_HEADER dos_hdr = (void *)image;
     PIMAGE_NT_HEADERS nt_hdr = (void *)(image + dos_hdr->e_lfanew);
 
-    ENSURE(length < 512,                            "File too small.\n");
-    ENSURE(dos_hdr->e_magic != IMAGE_DOS_SIGNATURE, "File DOS signature invalid.\n");
-    ENSURE(nt_hdr->Signature != IMAGE_NT_SIGNATURE, "File NT signature invalid.\n");
+    NO_FAIL(length < 512,                            "File too small.\n");
+    NO_FAIL(dos_hdr->e_magic != IMAGE_DOS_SIGNATURE, "File DOS signature invalid.\n");
+    NO_FAIL(nt_hdr->Signature != IMAGE_NT_SIGNATURE, "File NT signature invalid.\n");
 
     printf("   section    start      end   length    vaddr  flags\n");
     printf("-----------------------------------------------------\n");

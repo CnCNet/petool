@@ -25,6 +25,7 @@
 
 #include "pe.h"
 #include "cleanup.h"
+#include "common.h"
 
 int patch_image(int8_t *image, uint32_t address, int8_t *patch, uint32_t length)
 {
@@ -69,24 +70,15 @@ int patch(int argc, char **argv)
     FILE   *fh    = NULL;
     int8_t *image = NULL;
 
-    ENSURE(argc < 2, "usage: petool patch <image> [section]\n");
+    NO_FAIL(argc < 2, "usage: petool patch <image> [section]\n");
 
-    fh = fopen(argv[1], "r+b");
-    ENSURE_PERROR(!fh, "Error opening executable");
-
-    fseek(fh, 0L, SEEK_END);
-    uint32_t length = ftell(fh);
-    rewind(fh);
-
-    image = malloc(length);
-
-    ENSURE_PERROR(fread(image, length, 1, fh) != 1, "Error reading executable");
+    uint32_t length;
+    NO_FAIL_SILENT(open_and_read(&fh, &image, &length, argv[1], "r+b"));
 
     PIMAGE_DOS_HEADER dos_hdr = (void *)image;
     PIMAGE_NT_HEADERS nt_hdr = (void *)(image + dos_hdr->e_lfanew);
+
     char *section = argc > 2 ? (char *)argv[2] : ".patch";
-
-
     int8_t *patch = NULL;
     int32_t patch_len = 0;
 
@@ -104,7 +96,7 @@ int patch(int argc, char **argv)
         sct_hdr++;
     }
 
-    ENSURE(patch == NULL, "No '%s' section in given PE image.\n", section);
+    NO_FAIL(patch == NULL, "No '%s' section in given PE image.\n", section);
 
     for (int8_t *p = patch; p < patch + patch_len;)
     {
@@ -118,7 +110,7 @@ int patch(int argc, char **argv)
     }
 
     rewind(fh);
-    ENSURE_PERROR(fwrite(image, length, 1, fh) != 1, "Error writing executable");
+    NO_FAIL_PERROR(fwrite(image, length, 1, fh) != 1, "Error writing executable");
 
 cleanup:
     if (image) free(image);

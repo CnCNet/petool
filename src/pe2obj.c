@@ -26,36 +26,30 @@
 
 #include "pe.h"
 #include "cleanup.h"
+#include "common.h"
 
 int pe2obj(int argc, char **argv)
 {
     // decleration before more meaningful initialization for cleanup
     int     ret   = EXIT_SUCCESS;
-    FILE   *fh   = NULL;
+    FILE   *fh    = NULL;
     int8_t *image = NULL;
 
-    ENSURE(argc != 3, "usage: petool pe2obj <in> <out>\n");
+    NO_FAIL(argc != 3, "usage: petool pe2obj <in> <out>\n");
 
-    fh = fopen(argv[1], "rb");
-    ENSURE_PERROR(!fh, "Error opening executable");
+    uint32_t length;
+    NO_FAIL_SILENT(open_and_read(&fh, &image, &length, argv[1], "rb"));
 
-    fseek(fh, 0L, SEEK_END);
-    uint32_t length = ftell(fh);
-    rewind(fh);
-
-    image = malloc(length);
-
-    ENSURE_PERROR(fread(image, length, 1, fh) != 1, "Error reading executable");
 
     fclose(fh);
-    fh = NULL; // for cleanup;
+    fh = NULL; // for cleanup
 
     PIMAGE_DOS_HEADER dos_hdr = (void *)image;
     PIMAGE_NT_HEADERS nt_hdr = (void *)(image + dos_hdr->e_lfanew);
 
-    ENSURE(length < 512,                            "File too small.\n");
-    ENSURE(dos_hdr->e_magic != IMAGE_DOS_SIGNATURE, "File DOS signature invalid.\n");
-    ENSURE(nt_hdr->Signature != IMAGE_NT_SIGNATURE, "File NT signature invalid.\n");
+    NO_FAIL(length < 512,                            "File too small.\n");
+    NO_FAIL(dos_hdr->e_magic != IMAGE_DOS_SIGNATURE, "File DOS signature invalid.\n");
+    NO_FAIL(nt_hdr->Signature != IMAGE_NT_SIGNATURE, "File NT signature invalid.\n");
 
     for (int i = 0; i < nt_hdr->FileHeader.NumberOfSections; i++)
     {
@@ -73,13 +67,13 @@ int pe2obj(int argc, char **argv)
     }
 
     fh = fopen(argv[2], "wb");
-    ENSURE_PERROR(!fh, "Error opening output file");
+    NO_FAIL_PERROR(!fh, "Error opening output file");
 
-    ENSURE_PERROR(fwrite((char *)image + (dos_hdr->e_lfanew + 4),
-			 length - (dos_hdr->e_lfanew + 4),
-			 1,
-			 fh) != 1,
-		  "Failed to write object file to output file\n");
+    NO_FAIL_PERROR(fwrite((char *)image + (dos_hdr->e_lfanew + 4),
+                         length - (dos_hdr->e_lfanew + 4),
+                         1,
+                         fh) != 1,
+                  "Failed to write object file to output file\n");
 
 cleanup:
     if (image) free(image);

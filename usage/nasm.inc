@@ -34,20 +34,27 @@
 %comment
 ; an example:
 
-section .pdata
-    msg: db "Hello World",0
-
-section .ptext
-    some_func:
-        mov eax, msg
-        retn
-
-    some_func2:
-        retn
-
 section .patch
     ; ld will resolve patch symbols
-    @JMP 0x401000, some_func
-    @CALL 0x402000, some_func2
+    @JMP   0x005D6148, FuckupEntryPoint
+    @CALL  0x005A79F1, CallMe
+    @CLEAR 0x005B943C, 0x90, (0x5D6148-10)
+
+section .rdata
+    msg: db "Hello World",0
+
+section .bss
+    global_var: resd 1
+
+section .text
+    FuckupEntryPoint:
+        mov  DWORD [global_var], 1
+        mov  eax, msg
+        mov  eax, 0
+        retn
+
+    CallMe:
+        xor  ebx, ebx
+	jmp  FuckupEntryPoint
 
 %endcomment

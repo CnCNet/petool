@@ -58,7 +58,7 @@ int dump(int argc, char **argv)
     {
         const PIMAGE_SECTION_HEADER cur_sct = IMAGE_FIRST_SECTION(nt_hdr) + i;
         printf(
-            "%8.8s %8"PRIu32" %8"PRIu32" %8"PRIu32" %8"PRIX32" %8"PRIu32" %c%c%c%c%c%c\n",
+            "%8.8s %8"PRIx32" %8"PRIx32" %8"PRIx32" %8"PRIx32" %8"PRIx32" %c%c%c%c%c%c\n",
             cur_sct->Name,
             cur_sct->PointerToRawData,
             cur_sct->PointerToRawData + cur_sct->SizeOfRawData,

@@ -34,7 +34,7 @@ int setdd(int argc, char **argv)
     FILE   *fh    = NULL;
     int8_t *image = NULL;
 
-    FAIL_IF(argc < 5, "usage: petool setdd <image> <#DataDirectory> <VirtualAddress> <Size>\n");
+    FAIL_IF(argc != 5, "usage: petool setdd <image> <#DataDirectory> <VirtualAddress> <Size>\n");
 
     uint32_t dd   = strtol(argv[2], NULL, 0);
 

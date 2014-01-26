@@ -19,7 +19,6 @@ $(BUILD_DIR)/petool$(EXT): $(TOOLS_DIR)/src/*.c
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
-clean: clean_tools
 clean_tools:
 	rm -rf $(TOOLS)
 

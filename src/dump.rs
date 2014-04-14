@@ -1,7 +1,7 @@
 use std;
-use std::cast;
+use std::cast::transmute;
+use std::intrinsics::offset;
 use std::io;
-
 
 use collections::enum_set::EnumSet;
 
@@ -15,37 +15,37 @@ use pe::{
     IMAGE_SCN_CNT_CODE, IMAGE_SCN_CNT_INITIALIZED_DATA, IMAGE_SCN_CNT_UNINITIALIZED_DATA,
 };
 
+
 pub unsafe fn dump(args : ~[~str]) -> Result<(), ~str> {
 
-    fail_if!(args.len() < 2, ~"usage: petool dump <image>");
+    fail_if!(args.len() < 2,                         ~"usage: petool dump <image>");
 
     let (_, image) = try!(common::open_and_read(&Path::new(args[1]), io::Read));
-    fail_if!(image.len() < 512,                        ~"File too small.");
+    fail_if!(image.len() < 512,                      ~"File too small.");
 
-    let dos_hdr : &IMAGE_DOS_HEADER = cast::transmute(image.as_ptr());
+    let dos_hdr : &IMAGE_DOS_HEADER = transmute(image.as_ptr());
     fail_if!(dos_hdr.e_magic != IMAGE_DOS_SIGNATURE, ~"File DOS signature invalid.");
 
     let nt_hdr  : &IMAGE_NT_HEADERS =
-        cast::transmute(std::intrinsics::offset(dos_hdr, dos_hdr.e_lfanew as int));
+        transmute(offset(dos_hdr, dos_hdr.e_lfanew as int));
 
     fail_if!(nt_hdr.Signature != IMAGE_NT_SIGNATURE, ~"File NT signature invalid.");
 
-    println!(" section    start      end   length    vaddr    vsize  flags");
-    println!("------------------------------------------------------------");
+    println!(" section    start      end   length    vaddr    vsize  flags
+              ------------------------------------------------------------");
 
     for i in range(0, nt_hdr.FileHeader.NumberOfSections)
     {
         let cur_sct : &IMAGE_SECTION_HEADER =
-            cast::transmute(std::intrinsics::offset(IMAGE_FIRST_SECTION(nt_hdr), i as int));
+            transmute(offset(IMAGE_FIRST_SECTION(nt_hdr), i as int));
 
-        let preflags : uint = cur_sct.Characteristics as uint;
-        let flags : EnumSet<CUST_Image_Section_Flags> = cast::transmute(preflags);
+        let flags : EnumSet<CUST_Image_Section_Flags> =
+            transmute(cur_sct.Characteristics as uint);
 
-        let name = std::str::raw::from_buf_len(cast::transmute(cur_sct.Name), cur_sct.Name.len());
+        let name = std::str::raw::from_buf_len(transmute(cur_sct.Name), cur_sct.Name.len());
 
         println!(
             "{:8.8s} {:8X} {:8X} {:8X} {:8X} {:8X} {}{}{}{}{}{}",
-            //"%8.8s %8"PRIX32" %8"PRIX32" %8"PRIX32" %8"PRIX32" %8"PRIX32" %c%c%c%c%c%c",
             name,
             cur_sct.PointerToRawData,
             cur_sct.PointerToRawData + cur_sct.SizeOfRawData,

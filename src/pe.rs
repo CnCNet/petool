@@ -3,8 +3,8 @@
 #![allow(uppercase_variables)]
 // based on MingW headers converted to stdint, and then to rust
 
-use std;
-use std::cast;
+use std::cast::transmute;
+use std::intrinsics::offset;
 
 use collections::enum_set::CLike;
 
@@ -33,7 +33,7 @@ impl CLike for CUST_Image_Section_Flags {
         *self as uint
     }
     fn from_uint(u : uint) -> CUST_Image_Section_Flags {
-        unsafe { cast::transmute(u as u32) }
+        unsafe { transmute(u as u32) }
     }
 }
 
@@ -63,25 +63,21 @@ pub fn index<'a>(
     arr : &'a [IMAGE_DATA_DIRECTORY, ..IMAGE_NUMBEROF_DIRECTORY_ENTRIES]
         ) -> &'a IMAGE_DATA_DIRECTORY
 {
-    let i2 : uint = unsafe { cast::transmute(i) };
+    let i2 : uint = unsafe { transmute(i) };
     &arr[i2]
 }
 
-//  #define FIELD_OFFSET(t,f) ((intptr_t)&(((t*)0)->f))
 #[macro_export]
 macro_rules! field_offset(
     ($t:ty, $f:ident) => (unsafe { transmute<uint, *$t>(transmute<uint, *$t>(0).$f) })
 )
 
-pub static IMAGE_SIZEOF_SHORT_NAME               : u8 = 8;
-pub static IMAGE_NUMBEROF_DIRECTORY_ENTRIES      : u8 = 16;
-
-//  #define IMAGE_FIRST_SECTION(h) \
-//  ((PIMAGE_SECTION_HEADER) ((intptr_t)h+FIELD_OFFSET(IMAGE_NT_HEADERS,OptionalHeader)+((PIMAGE_NT_HEADERS)(h))->FileHeader.SizeOfOptionalHeader))
+pub static IMAGE_SIZEOF_SHORT_NAME          : u8 = 8;
+pub static IMAGE_NUMBEROF_DIRECTORY_ENTRIES : u8 = 16;
 
 #[inline]
 pub unsafe fn IMAGE_FIRST_SECTION<'a>(h : &'a IMAGE_NT_HEADERS) -> &'a IMAGE_SECTION_HEADER {
-    cast::transmute(std::intrinsics::offset(&(h.OptionalHeader), h.FileHeader.SizeOfOptionalHeader as int))
+    transmute(offset(&(h.OptionalHeader), h.FileHeader.SizeOfOptionalHeader as int))
 }
 
 #[packed] // align 2

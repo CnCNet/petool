@@ -27,8 +27,7 @@ pub unsafe fn dump(args : &[~str]) -> Result<(), ~str> {
     fail_if!(dos_hdr.e_magic != IMAGE_DOS_SIGNATURE, ~"File DOS signature invalid.");
 
     let nt_hdr  : &IMAGE_NT_HEADERS =
-        transmute(offset(dos_hdr, dos_hdr.e_lfanew as int));
-
+        transmute(offset(transmute::<_,*u8>(dos_hdr), dos_hdr.e_lfanew as int));
     fail_if!(nt_hdr.Signature != IMAGE_NT_SIGNATURE, ~"File NT signature invalid.");
 
     println!(" section    start      end   length    vaddr    vsize  flags");
@@ -42,10 +41,13 @@ pub unsafe fn dump(args : &[~str]) -> Result<(), ~str> {
         let flags : EnumSet<CUST_Image_Section_Flags> =
             transmute(cur_sct.Characteristics as uint);
 
-        let name = std::str::raw::from_buf_len(transmute(&cur_sct.Name), cur_sct.Name.len());
+        let name = match std::str::from_utf8(cur_sct.Name.as_slice()) {
+            None    => "BADNAME!",
+            Some(s) => s,
+        };
 
         println!(
-            "{:8.8s} {:8X} {:8X} {:8X} {:8X} {:8X} {}{}{}{}{}{}",
+            "{: >8.8} {:8X} {:8X} {:8X} {:8X} {:8X} {}{}{}{}{}{}",
             name,
             cur_sct.PointerToRawData,
             cur_sct.PointerToRawData + cur_sct.SizeOfRawData,
@@ -62,7 +64,7 @@ pub unsafe fn dump(args : &[~str]) -> Result<(), ~str> {
     }
 
     if nt_hdr.OptionalHeader.NumberOfRvaAndSizes >= 2 {
-        println!("Import Table: {:8X} ({:8X} bytes)",
+        println!("Import Table: {:8X} ({:X} bytes)",
                  nt_hdr.OptionalHeader.DataDirectory[1].VirtualAddress,
                  nt_hdr.OptionalHeader.DataDirectory[1].Size
                  );

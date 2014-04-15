@@ -17,15 +17,14 @@ pub static IMAGE_VXD_SIGNATURE          : u16 = 0x454C; /* LE   */
 
 pub static IMAGE_NT_SIGNATURE           : u32 = 0x00004550; /* PE00 */
 
-#[deriving(Eq)]
-#[repr(u32)]
+#[repr(uint)] // we store index of bit, instead
 pub enum CUST_Image_Section_Flags {
-    IMAGE_SCN_CNT_CODE                    = 0x00000020,
-    IMAGE_SCN_CNT_INITIALIZED_DATA        = 0x00000040,
-    IMAGE_SCN_CNT_UNINITIALIZED_DATA      = 0x00000080,
-    IMAGE_SCN_MEM_EXECUTE                 = 0x20000000,
-    IMAGE_SCN_MEM_READ                    = 0x40000000,
-    IMAGE_SCN_MEM_WRITE                   = 0x80000000
+    IMAGE_SCN_CNT_CODE                    = 0x05, //0x00000020,
+    IMAGE_SCN_CNT_INITIALIZED_DATA        = 0x06, //0x00000040,
+    IMAGE_SCN_CNT_UNINITIALIZED_DATA      = 0x07, //0x00000080,
+    IMAGE_SCN_MEM_EXECUTE                 = 0x1D, //0x20000000,
+    IMAGE_SCN_MEM_READ                    = 0x1E, //0x40000000,
+    IMAGE_SCN_MEM_WRITE                   = 0x1F, //0x80000000
 }
 
 impl CLike for CUST_Image_Section_Flags {
@@ -77,7 +76,8 @@ pub static IMAGE_NUMBEROF_DIRECTORY_ENTRIES : u8 = 16;
 
 #[inline]
 pub unsafe fn IMAGE_FIRST_SECTION<'a>(h : &'a IMAGE_NT_HEADERS) -> &'a IMAGE_SECTION_HEADER {
-    transmute(offset(&(h.OptionalHeader), h.FileHeader.SizeOfOptionalHeader as int))
+    transmute(offset(transmute::<_,*u8>(&h.OptionalHeader),
+                     h.FileHeader.SizeOfOptionalHeader as int))
 }
 
 #[packed] // align 2

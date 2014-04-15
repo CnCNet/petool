@@ -11,9 +11,9 @@ use pe::*;
 
 pub unsafe fn dump(args : &[~str]) -> Result<(), ~str> {
 
-    fail_if!(args.len() < 2,                         ~"usage: petool dump <image>");
+    fail_if!(args.len() !=1,                         ~"usage: petool dump <image>");
 
-    let (_, image) = try!(common::open_and_read(&Path::new(args[1].as_slice()), io::Read));
+    let (_, image) = try!(common::open_and_read(&Path::new(args[0].as_slice()), io::Read));
     fail_if!(image.len() < 512,                      ~"File too small.");
 
     let dos_hdr : &IMAGE_DOS_HEADER = transmute(image.as_ptr());

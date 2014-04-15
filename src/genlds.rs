@@ -8,10 +8,10 @@ use pe::*;
 
 pub unsafe fn genlds(args : &[~str]) -> Result<(), ~str> {
 
-    fail_if!(args.len() < 2, ~"usage: petool genlds <image>\n");
+    fail_if!(args.len() != 1, ~"usage: petool genlds <image>");
 
 
-    let (_, image) = try!(common::open_and_read(&Path::new(args[1].as_slice()), io::Read));
+    let (_, image) = try!(common::open_and_read(&Path::new(args[0].as_slice()), io::Read));
     fail_if!(image.len() < 512,                      ~"File too small.");
 
     let dos_hdr : &IMAGE_DOS_HEADER = transmute(image.as_ptr());
@@ -21,7 +21,7 @@ pub unsafe fn genlds(args : &[~str]) -> Result<(), ~str> {
         transmute(offset(transmute::<_,*u8>(dos_hdr), dos_hdr.e_lfanew as int));
     fail_if!(nt_hdr.Signature != IMAGE_NT_SIGNATURE, ~"File NT signature invalid.");
 
-    println!("/* GNU ld linker script for {} */", args[1]);
+    println!("/* GNU ld linker script for {} */", args[0]);
     println!("start = {:#0.X};",
              nt_hdr.OptionalHeader.ImageBase + nt_hdr.OptionalHeader.AddressOfEntryPoint);
 

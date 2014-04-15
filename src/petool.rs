@@ -12,6 +12,7 @@ mod pe;
 
 mod dump;
 mod genlds;
+mod pe2obj;
 
 static help : &'static str = "commands:
     dump   -- dump information about section of executable
@@ -49,12 +50,12 @@ fn root(args : &[~str]) -> Result<(), ~str> {
              render_help(args[0].as_slice())))
     } else {
         match args[1].as_slice() {
-            "dump"   => unsafe { dump::dump     (args.slice_from(1)) },
-            "genlds" => unsafe { genlds::genlds (args.slice_from(1)) },
-            //"pe2obj" => pe2obj (args.slice_from(1)),
-            //"patch"  => patch  (args.slice_from(1)),
-            //"setdd"  => setdd  (args.slice_from(1)),
-            //"setvs"  => setvs  (args.slice_from(1)),
+            "dump"   => unsafe { dump::dump     (args.slice_from(2)) },
+            "genlds" => unsafe { genlds::genlds (args.slice_from(2)) },
+            "pe2obj" => unsafe { pe2obj::pe2obj (args.slice_from(2)) },
+            //"patch"  => unsafe { patch::patch   (args.slice_from(2)) },
+            //"setdd"  => unsafe { setdd::setdd   (args.slice_from(2)) },
+            //"setvs"  => unsafe { setvs::setvs   (args.slice_from(2)) },
             //"help"   => {
             //    help(args[0]);
             //    Ok(())

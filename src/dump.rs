@@ -6,14 +6,7 @@ use std::io;
 use collections::enum_set::EnumSet;
 
 use common;
-use pe::{
-    IMAGE_DOS_HEADER,     IMAGE_NT_HEADERS,
-    IMAGE_DOS_SIGNATURE,  IMAGE_NT_SIGNATURE,
-    IMAGE_SECTION_HEADER, IMAGE_FIRST_SECTION,
-    CUST_Image_Section_Flags,
-    IMAGE_SCN_MEM_READ, IMAGE_SCN_MEM_WRITE, IMAGE_SCN_MEM_EXECUTE,
-    IMAGE_SCN_CNT_CODE, IMAGE_SCN_CNT_INITIALIZED_DATA, IMAGE_SCN_CNT_UNINITIALIZED_DATA,
-};
+use pe::*;
 
 
 pub unsafe fn dump(args : &[~str]) -> Result<(), ~str> {

@@ -7,9 +7,11 @@ use libc::consts::os::c95::{EXIT_FAILURE, EXIT_SUCCESS};
 
 #[macro_escape]
 mod common;
-mod dump;
 #[macro_escape]
 mod pe;
+
+mod dump;
+mod genlds;
 
 static help : &'static str = "commands:
     dump   -- dump information about section of executable
@@ -47,8 +49,8 @@ fn root(args : &[~str]) -> Result<(), ~str> {
              render_help(args[0].as_slice())))
     } else {
         match args[1].as_slice() {
-            "dump"   => unsafe { dump::dump   (args.slice_from(1)) },
-            //"genlds" => genlds (args.slice_from(1)),
+            "dump"   => unsafe { dump::dump     (args.slice_from(1)) },
+            "genlds" => unsafe { genlds::genlds (args.slice_from(1)) },
             //"pe2obj" => pe2obj (args.slice_from(1)),
             //"patch"  => patch  (args.slice_from(1)),
             //"setdd"  => setdd  (args.slice_from(1)),

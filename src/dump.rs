@@ -16,11 +16,11 @@ use pe::{
 };
 
 
-pub unsafe fn dump(args : ~[~str]) -> Result<(), ~str> {
+pub unsafe fn dump(args : &[~str]) -> Result<(), ~str> {
 
     fail_if!(args.len() < 2,                         ~"usage: petool dump <image>");
 
-    let (_, image) = try!(common::open_and_read(&Path::new(args[1]), io::Read));
+    let (_, image) = try!(common::open_and_read(&Path::new(args[1].as_slice()), io::Read));
     fail_if!(image.len() < 512,                      ~"File too small.");
 
     let dos_hdr : &IMAGE_DOS_HEADER = transmute(image.as_ptr());
@@ -31,8 +31,8 @@ pub unsafe fn dump(args : ~[~str]) -> Result<(), ~str> {
 
     fail_if!(nt_hdr.Signature != IMAGE_NT_SIGNATURE, ~"File NT signature invalid.");
 
-    println!(" section    start      end   length    vaddr    vsize  flags
-              ------------------------------------------------------------");
+    println!(" section    start      end   length    vaddr    vsize  flags");
+    println!("------------------------------------------------------------");
 
     for i in range(0, nt_hdr.FileHeader.NumberOfSections)
     {
@@ -42,7 +42,7 @@ pub unsafe fn dump(args : ~[~str]) -> Result<(), ~str> {
         let flags : EnumSet<CUST_Image_Section_Flags> =
             transmute(cur_sct.Characteristics as uint);
 
-        let name = std::str::raw::from_buf_len(transmute(cur_sct.Name), cur_sct.Name.len());
+        let name = std::str::raw::from_buf_len(transmute(&cur_sct.Name), cur_sct.Name.len());
 
         println!(
             "{:8.8s} {:8X} {:8X} {:8X} {:8X} {:8X} {}{}{}{}{}{}",

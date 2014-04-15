@@ -32,7 +32,7 @@ impl CLike for CUST_Image_Section_Flags {
         *self as uint
     }
     fn from_uint(u : uint) -> CUST_Image_Section_Flags {
-        unsafe { transmute(u as u32) }
+        unsafe { transmute(u) }
     }
 }
 

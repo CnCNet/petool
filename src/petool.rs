@@ -19,7 +19,7 @@ static help : &'static str = "commands:
     pe2obj -- convert PE executable into win32 object file
     patch  -- apply a patch set from the .patch section
     setdd  -- set any DataDirectory in PE header
-    Setvs  -- set VirtualSize for a section
+    setvs  -- set VirtualSize for a section
     help   -- this information";
 
 fn render_help(progname : &str) -> ~str {

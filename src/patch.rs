@@ -3,7 +3,6 @@ use std::cast::transmute;
 use std::intrinsics::offset;
 use std::io;
 use std::io::BufReader;
-use std::slice::raw::from_buf_raw;
 
 use common;
 use pe::*;
@@ -50,7 +49,7 @@ pub unsafe fn patch(args : &[~str]) -> Result<(), ~str> {
             (nt_hdr.OptionalHeader.ImageBase + patch_sct.PhysAddrORVirtSize) as uint);
         let patches = &mut BufReader::new(patch_buf);
 
-        try!(apply_all(patches, pre_patches, post_patches, patch_sct.PointerToRawData));
+        try!(apply_all(patches, patch_buf, pre_patches, post_patches, patch_sct.PointerToRawData));
 
         /* FIXME: implement checksum calculation */
         {
@@ -65,7 +64,8 @@ pub unsafe fn patch(args : &[~str]) -> Result<(), ~str> {
 }
 
 unsafe fn apply_all(
-    patches : &mut BufReader, pre  : &mut [u8], post : &mut [u8], skip_offset : u32
+    patches : &mut BufReader, patch_buf : &[u8],
+    pre  : &mut [u8], post : &mut [u8], skip_offset : u32
 ) -> Result<(), ~str> {
     let err = ~"Could not read next patch";
     loop {
@@ -73,9 +73,9 @@ unsafe fn apply_all(
             Ok(addr) => if addr   == 0             { return Ok(()); } else { addr },
             Err(e)   => if e.kind == io::EndOfFile { return Ok(()); } else { return Err(err); }
         };
-        let len  = try_complain!(patches.read_le_u32(), err);
-        let patch : &[u8] = from_buf_raw(transmute(addr),
-                                         len as uint);
+        let len   = try_complain!(patches.read_le_u32(), err);
+        let patch = patch_buf.slice_from(len as uint).slice_to(addr as uint);
+        try_complain!(patches.seek(len as i64, io::SeekCur), err);
         try!(patch_image(addr, patch, pre, post, skip_offset));
     }
 }

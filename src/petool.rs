@@ -13,6 +13,7 @@ mod pe;
 mod dump;
 mod genlds;
 mod pe2obj;
+mod patch;
 
 static help : &'static str = "commands:
     dump   -- dump information about section of executable
@@ -53,7 +54,7 @@ fn root(args : &[~str]) -> Result<(), ~str> {
             "dump"   => unsafe { dump::dump     (args.slice_from(2)) },
             "genlds" => unsafe { genlds::genlds (args.slice_from(2)) },
             "pe2obj" => unsafe { pe2obj::pe2obj (args.slice_from(2)) },
-            //"patch"  => unsafe { patch::patch   (args.slice_from(2)) },
+            "patch"  => unsafe { patch::patch   (args.slice_from(2)) },
             //"setdd"  => unsafe { setdd::setdd   (args.slice_from(2)) },
             //"setvs"  => unsafe { setvs::setvs   (args.slice_from(2)) },
             //"help"   => {

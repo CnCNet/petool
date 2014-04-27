@@ -5,13 +5,6 @@ use std::io;
 use common;
 use pe::*;
 
-macro_rules! read_arg(
-    [$n:expr] => (match ::std::from_str::from_str::<uint>(args[$n]) {
-        Some(n) => n,
-        None    => return Err(format!("could not parse argument number {}", $n))
-    })
-)
-
 pub unsafe fn setdd(args : &[~str]) -> Result<(), ~str> {
     fail_if!(args.len() != 4,
              ~"usage: petool setdd <image> <#DataDirectory> <VirtualAddress> <Size>");
@@ -28,12 +21,12 @@ pub unsafe fn setdd(args : &[~str]) -> Result<(), ~str> {
         transmute(offset(transmute::<_,*u8>(dos_hdr), dos_hdr.e_lfanew as int));
     fail_if!(nt_hdr.Signature != IMAGE_NT_SIGNATURE, ~"File NT signature invalid.");
 
-    let dd = read_arg![1];
+    let dd = read_arg!(1);
     fail_if!(nt_hdr.OptionalHeader.NumberOfRvaAndSizes <= dd as u32,
              format!("Data directory \\#{} is missing.", dd));
 
-    nt_hdr.OptionalHeader.DataDirectory[dd].VirtualAddress = read_arg![2] as u32;
-    nt_hdr.OptionalHeader.DataDirectory[dd].Size           = read_arg![3] as u32;
+    nt_hdr.OptionalHeader.DataDirectory[dd].VirtualAddress = read_arg!(2) as u32;
+    nt_hdr.OptionalHeader.DataDirectory[dd].Size           = read_arg!(3) as u32;
 
     /* FIXME: implement checksum calculation */
     nt_hdr.OptionalHeader.CheckSum = 0;

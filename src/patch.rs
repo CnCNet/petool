@@ -51,8 +51,7 @@ pub unsafe fn patch(args : &[~str]) -> Result<(), ~str> {
 
         try!(apply_all(patches, patch_buf, pre_patches, post_patches, patch_sct.PointerToRawData));
 
-        /* FIXME: implement checksum calculation */
-        {
+        { // FIXME: implement checksum calculation
             let mut h = nt_hdr.OptionalHeader;
             h.CheckSum = 0;
         }

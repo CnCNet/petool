@@ -15,7 +15,7 @@ mod genlds;
 mod pe2obj;
 mod patch;
 mod setdd;
-//mod setvs;
+mod setvs;
 
 static help : &'static str = "commands:
     dump   -- dump information about section of executable
@@ -58,11 +58,11 @@ fn root(args : &[~str]) -> Result<(), ~str> {
             "pe2obj" => unsafe { pe2obj::pe2obj (args.slice_from(2)) },
             "patch"  => unsafe { patch::patch   (args.slice_from(2)) },
             "setdd"  => unsafe { setdd::setdd   (args.slice_from(2)) },
-            //"setvs"  => unsafe { setvs::setvs   (args.slice_from(2)) },
-            //"help"   => {
-            //    help(args[0]);
-            //    Ok(())
-            //}
+            "setvs"  => unsafe { setvs::setvs   (args.slice_from(2)) },
+            "help"   => {
+                std::io::stdio::println(render_help(args[0].as_slice()));
+                Ok(())
+            }
             _ => Err(format!("Unknown command: {}\n{}",
                              args[1],
                              render_help(args[0].as_slice())))

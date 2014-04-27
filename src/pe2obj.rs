@@ -8,7 +8,7 @@ use collections::enum_set::EnumSet;
 use common;
 use pe::*;
 
-pub unsafe fn pe2obj(args : &[~str]) -> Result<(), ~str> {
+pub unsafe fn main(args : &[~str]) -> Result<(), ~str> {
 
     fail_if!(args.len() != 2, ~"usage: petool pe2obj <in> <out>");
 

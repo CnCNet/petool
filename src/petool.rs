@@ -53,12 +53,12 @@ fn root(args : &[~str]) -> Result<(), ~str> {
              render_help(args[0].as_slice())))
     } else {
         match args[1].as_slice() {
-            "dump"   => unsafe { dump::dump     (args.slice_from(2)) },
-            "genlds" => unsafe { genlds::genlds (args.slice_from(2)) },
-            "pe2obj" => unsafe { pe2obj::pe2obj (args.slice_from(2)) },
-            "patch"  => unsafe { patch::patch   (args.slice_from(2)) },
-            "setdd"  => unsafe { setdd::setdd   (args.slice_from(2)) },
-            "setvs"  => unsafe { setvs::setvs   (args.slice_from(2)) },
+            "dump"   => unsafe { dump   :: main (args.slice_from(2)) },
+            "genlds" => unsafe { genlds :: main (args.slice_from(2)) },
+            "pe2obj" => unsafe { pe2obj :: main (args.slice_from(2)) },
+            "patch"  => unsafe { patch  :: main (args.slice_from(2)) },
+            "setdd"  => unsafe { setdd  :: main (args.slice_from(2)) },
+            "setvs"  => unsafe { setvs  :: main (args.slice_from(2)) },
             "help"   => {
                 std::io::stdio::println(render_help(args[0].as_slice()));
                 Ok(())

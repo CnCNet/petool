@@ -5,7 +5,7 @@ use std::io;
 use common;
 use pe::*;
 
-pub unsafe fn setdd(args : &[~str]) -> Result<(), ~str> {
+pub unsafe fn main(args : &[~str]) -> Result<(), ~str> {
     fail_if!(args.len() != 4,
              ~"usage: petool setdd <image> <#DataDirectory> <VirtualAddress> <Size>");
 

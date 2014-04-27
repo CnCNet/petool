@@ -68,7 +68,7 @@ pub fn index<'a>(
 
 #[macro_export]
 macro_rules! field_offset(
-    ($t:ty, $f:ident) => (unsafe { transmute<uint, *$t>(transmute<uint, *$t>(0).$f) })
+    ($t:ty, $f:ident) => (unsafe { transmute<uint, *$t>(& transmute<uint, *$t>(0).$f) })
 )
 
 pub static IMAGE_SIZEOF_SHORT_NAME          : u8 = 8;

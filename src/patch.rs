@@ -7,7 +7,7 @@ use std::io::BufReader;
 use common;
 use pe::*;
 
-pub unsafe fn patch(args : &[~str]) -> Result<(), ~str> {
+pub unsafe fn main(args : &[~str]) -> Result<(), ~str> {
 
     fail_if!(args.len() < 1, ~"usage: petool patch <image> [section]");
 

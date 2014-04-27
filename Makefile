@@ -1,17 +1,11 @@
-CC	?= gcc
-RM	?= rm -f
-CFLAGS	 = -O2 -std=c99 -pedantic -Wall -Wextra -DREV=\"$(shell git rev-parse --short @{0})\"
+include rust.mk
 
-ifdef DEBUG
-CFLAGS	+= -ggdb
-endif
+RUST_OUT_DIR = .
+REV          = $(shell git rev-parse --short @{0})
 
-all: petool$(EXT)
+$(eval $(call RUST_CRATE,LIB,src/petool.rs,))
 
-petool$(EXT): src/*.c
-	$(CC) $(CFLAGS) -o $@ $?
-
-clean:
-	$(RM) petool$(EXT)
+petool: $(LIB_OUT)
+clean:  $(LIB_CLEAN)
 
 .PHONY: clean

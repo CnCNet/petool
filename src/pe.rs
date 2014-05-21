@@ -3,8 +3,7 @@
 #![allow(uppercase_variables)]
 // based on MingW headers converted to stdint, and then to rust
 
-use std::cast::transmute;
-use std::intrinsics::offset;
+use std::intrinsics::{transmute, offset};
 
 use collections::enum_set::CLike;
 
@@ -65,11 +64,6 @@ pub fn index<'a>(
     let i2 : uint = unsafe { transmute(i) };
     &arr[i2]
 }
-
-#[macro_export]
-macro_rules! field_offset(
-    ($t:ty, $f:ident) => (unsafe { transmute<uint, *$t>(& transmute<uint, *$t>(0).$f) })
-)
 
 pub static IMAGE_SIZEOF_SHORT_NAME          : u8 = 8;
 pub static IMAGE_NUMBEROF_DIRECTORY_ENTRIES : u8 = 16;

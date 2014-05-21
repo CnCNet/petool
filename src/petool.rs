@@ -11,11 +11,11 @@ mod common;
 mod pe;
 
 mod dump;
-mod genlds;
-mod pe2obj;
-mod patch;
-mod setdd;
-mod setvs;
+//mod genlds;
+//mod pe2obj;
+//mod patch;
+//mod setdd;
+//mod setvs;
 
 static help : &'static str = "commands:
     dump   -- dump information about section of executable
@@ -32,13 +32,12 @@ fn render_help(progname : &str) -> ~str {
 
 #[allow(unused_must_use)]
 pub fn main() {
-    let mut stderr = std::io::stdio::stderr();
-    let args : ~[~str] = std::os::args();
+    let args : ~[~str] = std::vec::FromVec::from_vec(std::os::args());
 
     let ret = match root(args) {
         Ok(_)  => EXIT_SUCCESS,
-        Err(s) => {
-            stderr.write_line(s);
+        Err(err) => {
+            std::io::stdio::stderr().write_line(format!("{}",err));
             EXIT_FAILURE
         }
     };
@@ -46,26 +45,28 @@ pub fn main() {
 }
 
 
-fn root(args : &[~str]) -> Result<(), ~str> {
+fn root(args : &[~str]) -> std::io::IoResult<()> {
     if args.len() < 2 {
-        Err(format!(
+        Err(common::new_error(
             "No command given: please give valid command name as first argument\n{}",
-             render_help(args[0].as_slice())))
+            Some(render_help(args[0].as_slice()))))
     } else {
         match args[1].as_slice() {
-            "dump"   => unsafe { dump   :: main (args.slice_from(2)) },
-            "genlds" => unsafe { genlds :: main (args.slice_from(2)) },
-            "pe2obj" => unsafe { pe2obj :: main (args.slice_from(2)) },
-            "patch"  => unsafe { patch  :: main (args.slice_from(2)) },
-            "setdd"  => unsafe { setdd  :: main (args.slice_from(2)) },
-            "setvs"  => unsafe { setvs  :: main (args.slice_from(2)) },
+            "dump"   => dump   :: main (args.slice_from(2)),
+            //"genlds" => genlds :: main (args.slice_from(2)) },
+            //"pe2obj" => pe2obj :: main (args.slice_from(2)) },
+            //"patch"  => patch  :: main (args.slice_from(2)) },
+            //"setdd"  => setdd  :: main (args.slice_from(2)) },
+            //"setvs"  => setvs  :: main (args.slice_from(2)) },
             "help"   => {
                 std::io::stdio::println(render_help(args[0].as_slice()));
                 Ok(())
             }
-            _ => Err(format!("Unknown command: {}\n{}",
+            _ => Err(common::new_error(
+                "",
+                Some(format!("Unknown command: {}\n{}",
                              args[1],
-                             render_help(args[0].as_slice())))
+                             render_help(args[0].as_slice())))))
         }
     }
 }

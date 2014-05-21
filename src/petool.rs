@@ -11,7 +11,7 @@ mod common;
 mod pe;
 
 mod dump;
-//mod genlds;
+mod genlds;
 //mod pe2obj;
 //mod patch;
 //mod setdd;
@@ -53,11 +53,11 @@ fn root(args : &[~str]) -> std::io::IoResult<()> {
     } else {
         match args[1].as_slice() {
             "dump"   => dump   :: main (args.slice_from(2)),
-            //"genlds" => genlds :: main (args.slice_from(2)) },
-            //"pe2obj" => pe2obj :: main (args.slice_from(2)) },
-            //"patch"  => patch  :: main (args.slice_from(2)) },
-            //"setdd"  => setdd  :: main (args.slice_from(2)) },
-            //"setvs"  => setvs  :: main (args.slice_from(2)) },
+            "genlds" => genlds :: main (args.slice_from(2)),
+            //"pe2obj" => pe2obj :: main (args.slice_from(2)),
+            //"patch"  => patch  :: main (args.slice_from(2)),
+            //"setdd"  => setdd  :: main (args.slice_from(2)),
+            //"setvs"  => setvs  :: main (args.slice_from(2)),
             "help"   => {
                 std::io::stdio::println(render_help(args[0].as_slice()));
                 Ok(())

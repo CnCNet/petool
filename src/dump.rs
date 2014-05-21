@@ -1,5 +1,5 @@
 use std;
-use std::intrinsics::{transmute};
+use std::intrinsics::transmute;
 use std::io;
 
 use collections::enum_set::EnumSet;

@@ -57,7 +57,7 @@ pub fn open_pe(executable : &Path, access : io::FileAccess)
         io::Open, access)
 }
 
-pub fn seek_nt_header<T : Reader + Seek>(pe : &mut T) -> io::IoResult<i64> {
+fn seek_nt_header<T : Reader + Seek>(pe : &mut T) -> io::IoResult<i64> {
     try!(pe.seek(
         field_offset!(IMAGE_DOS_HEADER, e_lfanew) as i64,
         io::SeekSet));
@@ -67,9 +67,11 @@ pub fn seek_nt_header<T : Reader + Seek>(pe : &mut T) -> io::IoResult<i64> {
 }
 
 // assumes at end of the NT Header
-pub fn seek_section_headers<T : Seek>
-    (pe : &mut T, nt_header : &IMAGE_NT_HEADERS)
-    -> io::IoResult<i64> {
+fn seek_section_headers<T : Seek> (
+    pe        : &mut T,
+    nt_header : &IMAGE_NT_HEADERS
+        ) -> io::IoResult<i64>
+{
 
     // in case OptionalHeader's actual size is different
     try!(pe.seek(
@@ -81,7 +83,8 @@ pub fn seek_section_headers<T : Seek>
 }
 
 /// checks DOS and PE signatures
-pub fn validate_pe<T : Reader + Seek>(pe : &mut T) -> io::IoResult<()> {
+pub fn validate_pe<T : Reader + Seek> (pe : &mut T) -> io::IoResult<()>
+{
     // seek DOS Signature
     try!(pe.seek(
         field_offset!(IMAGE_DOS_HEADER, e_magic) as i64,
@@ -100,9 +103,10 @@ pub fn validate_pe<T : Reader + Seek>(pe : &mut T) -> io::IoResult<()> {
     Ok(())
 }
 
-pub fn read_headers<T : Reader + Seek> (pe : &mut T)
-    -> io::IoResult<(Box<IMAGE_NT_HEADERS>, ~[IMAGE_SECTION_HEADER])> {
-
+pub fn read_headers<T : Reader + Seek> (
+    pe : &mut T
+        ) -> io::IoResult<(Box<IMAGE_NT_HEADERS>, ~[IMAGE_SECTION_HEADER])>
+{
     try!(seek_nt_header(pe));
 
     let nt_header : Box<IMAGE_NT_HEADERS> = unsafe {
@@ -124,7 +128,7 @@ pub fn read_headers<T : Reader + Seek> (pe : &mut T)
     Ok((nt_header, section_headers))
 }
 
-pub fn as_bytes<'a, T>(x: &'a T) -> &'a [u8] {
+fn as_bytes<'a, T>(x: &'a T) -> &'a [u8] {
     let singleton = ::std::slice::ref_slice(x);
     let bytes : &'a [u8] = unsafe {
         use std::raw::Repr;
@@ -136,7 +140,7 @@ pub fn as_bytes<'a, T>(x: &'a T) -> &'a [u8] {
     bytes
 }
 
-pub fn array_as_bytes<'a, T>(x: &'a [T]) -> &'a [u8] {
+fn array_as_bytes<'a, T>(x: &'a [T]) -> &'a [u8] {
     let len = x.len();
     let bytes : &'a [u8] = unsafe {
         use std::raw::Repr;
@@ -146,4 +150,33 @@ pub fn array_as_bytes<'a, T>(x: &'a [T]) -> &'a [u8] {
     };
     assert_eq!(len * ::std::mem::size_of::<T>(), bytes.len());
     bytes
+}
+
+pub fn write_nt_header<T : Reader + Writer + Seek> (
+    pe : &mut T,
+    nt_header : Box<IMAGE_NT_HEADERS>
+        ) -> io::IoResult<()>
+{
+    try!(seek_nt_header(pe));
+
+    try_complain!(pe.write(as_bytes(nt_header).slice_to(
+        nt_header.FileHeader.SizeOfOptionalHeader as uint)),
+                  "Could not write back NT header to executable".to_owned());
+
+    Ok(())
+}
+
+pub fn write_headers<T : Reader + Writer + Seek> (
+    pe              : &mut T,
+    nt_header       : Box<IMAGE_NT_HEADERS>,
+    section_headers : &[IMAGE_SECTION_HEADER]
+        ) -> io::IoResult<()>
+{
+    try!(write_nt_header(pe, nt_header));
+
+    // relies on above to seek to correct spot
+    try_complain!(pe.write(array_as_bytes(section_headers)),
+                  "Could not write back section headers to executable".to_owned());
+
+    Ok(())
 }

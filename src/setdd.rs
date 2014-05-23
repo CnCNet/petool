@@ -22,10 +22,7 @@ pub fn main(args : &[~str]) -> io::IoResult<()> {
     /* FIXME: implement checksum calculation */
     nt_header.OptionalHeader.CheckSum = 0;
 
-    try!(common::seek_nt_header(&mut file));
+    try!(common::write_nt_header(&mut file, nt_header));
 
-    try_complain!(file.write(common::as_bytes(nt_header).slice_to(
-        nt_header.FileHeader.SizeOfOptionalHeader as uint)),
-                  "Could not write back headers to executable".to_owned());
     Ok(())
 }

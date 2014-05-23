@@ -35,17 +35,7 @@ pub fn main(args : &[~str]) -> io::IoResult<()> {
     // FIXME: implement checksum calculation
     nt_header.OptionalHeader.CheckSum = 0;
 
-    let nt_offset = try!(common::seek_nt_header(&mut file));
-
-    try_complain!(file.write(common::as_bytes(nt_header).slice_to(
-        nt_header.FileHeader.SizeOfOptionalHeader as uint)),
-                  "Could not write back NT header to executable".to_owned());
-
-    try!(file.seek(nt_offset, io::SeekSet));
-    try!(common::seek_section_headers(&mut file, nt_header));
-
-    try_complain!(file.write(common::array_as_bytes(section_headers)),
-                  "Could not write back section headers to executable".to_owned());
+    try!(common::write_headers(&mut file, nt_header, section_headers));
 
     Ok(())
 }

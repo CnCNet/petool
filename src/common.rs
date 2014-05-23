@@ -45,8 +45,7 @@ macro_rules! read_arg(
 
 macro_rules! field_offset(
     ($t:ty, $f:ident) => (unsafe {
-        intrinsics::transmute::<_, uint>(
-            & intrinsics::transmute::<uint, &$t>(0).$f)
+        ::std::intrinsics::transmute::<_,uint>(&((*(0 as *$t)).$f))
     })
 )
 

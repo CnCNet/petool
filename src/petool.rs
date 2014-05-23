@@ -14,8 +14,8 @@ mod dump;
 mod genlds;
 //mod pe2obj;
 //mod patch;
-//mod setdd;
-//mod setvs;
+mod setdd;
+mod setvs;
 
 static help : &'static str = "commands:
     dump   -- dump information about section of executable
@@ -56,8 +56,8 @@ fn root(args : &[~str]) -> std::io::IoResult<()> {
             "genlds" => genlds :: main (args.slice_from(2)),
             //"pe2obj" => pe2obj :: main (args.slice_from(2)),
             //"patch"  => patch  :: main (args.slice_from(2)),
-            //"setdd"  => setdd  :: main (args.slice_from(2)),
-            //"setvs"  => setvs  :: main (args.slice_from(2)),
+            "setdd"  => setdd  :: main (args.slice_from(2)),
+            "setvs"  => setvs  :: main (args.slice_from(2)),
             "help"   => {
                 std::io::stdio::println(render_help(args[0].as_slice()));
                 Ok(())

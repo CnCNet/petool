@@ -1,54 +1,51 @@
-use std;
-use std::cast::transmute;
-use std::intrinsics::offset;
+//use std;
 use std::io;
 
 use common;
-use pe::*;
 
-pub unsafe fn main(args : &[~str]) -> Result<(), ~str> {
+pub fn main(args : &[~str]) -> io::IoResult<()> {
     fail_if!(args.len() != 3,
-             ~"usage: petool setvs <image> <section> <VirtualSize>");
+             "usage: petool setvs <image> <section> <VirtualSize>");
 
-    let (mut file, image) =
-        try!(common::open_and_read(&Path::new(args[0].as_slice()), io::ReadWrite));
+    let mut file = try!(common::open_pe(&Path::new(args[0].as_slice()), io::Read));
 
-    fail_if!(image.len() < 512,                      ~"File too small.");
+    try!(common::validate_pe(&mut file));
 
-    let dos_hdr : &IMAGE_DOS_HEADER = transmute(image.as_ptr());
-    fail_if!(dos_hdr.e_magic != IMAGE_DOS_SIGNATURE, ~"File DOS signature invalid.");
+    let (mut nt_header, section_headers) = try!(common::read_headers(&mut file));
 
-    let nt_hdr  : &mut IMAGE_NT_HEADERS =
-        transmute(offset(transmute::<_,*u8>(dos_hdr), dos_hdr.e_lfanew as int));
-    fail_if!(nt_hdr.Signature != IMAGE_NT_SIGNATURE, ~"File NT signature invalid.");
-
-    let section : &str = args[1].as_slice();
+    let name : &str = args[1].as_slice();
     let vs = read_arg!(2) as u32;
 
-    fail_if!(vs == 0,                                ~"VirtualSize can't be zero.");
+    fail_if!(vs == 0,                                "VirtualSize can't be zero.");
 
-    for i in range(0, nt_hdr.FileHeader.NumberOfSections) {
-        let cur_sct : &mut IMAGE_SECTION_HEADER =
-            transmute(offset(IMAGE_FIRST_SECTION(nt_hdr), i as int));
+    let &mut section = match section_headers.iter().find(
+        |cur_sct| ::std::str::from_utf8(cur_sct.Name.as_slice()) == Some(name))
+    {
+        None => return Err(common::new_error("section not in image",
+                                      Some(format!("section = {}", name)))),
+        Some(section) => section
+    };
 
-        let name = match std::str::from_utf8(cur_sct.Name.as_slice()) {
-            None    => continue,
-            Some(s) => s,
-        };
-        if name != section { continue; }
-        fail_if!(cur_sct.SizeOfRawData > vs, ~"VirtualSize can't be smaller than raw size.");
-        // update total virtual size of image
-        nt_hdr.OptionalHeader.SizeOfImage += vs - cur_sct.PhysAddrORVirtSize;
-        cur_sct.PhysAddrORVirtSize = vs; // update section size
-        { // FIXME: implement checksum calculation
-            let mut h = nt_hdr.OptionalHeader;
-            h.CheckSum = 0;
-        }
+    fail_if!(section.SizeOfRawData > vs, "VirtualSize can't be smaller than raw size.");
 
-        try_complain!(file.seek(0, io::SeekSet),     ~"Failed to rewind file for writing");
-        try_complain!(file.write(image.as_slice()),  ~"Error writing executable");
-        return Ok(());
-    }
+    // update total virtual size of image
+    nt_header.OptionalHeader.SizeOfImage += vs - section.PhysAddrORVirtSize;
+    section.PhysAddrORVirtSize = vs; // update section size
 
-    Err(format!("No '{}' section in given PE image.", section))
+    // FIXME: implement checksum calculation
+    nt_header.OptionalHeader.CheckSum = 0;
+
+    let nt_offset = try!(common::seek_nt_header(&mut file));
+
+    try_complain!(file.write(common::as_bytes(nt_header).slice_to(
+        nt_header.FileHeader.SizeOfOptionalHeader as uint)),
+                  "Could not write back NT header to executable".to_owned());
+
+    try!(file.seek(nt_offset, io::SeekSet));
+    try!(common::seek_section_headers(&mut file, nt_header));
+
+    try_complain!(file.write(common::array_as_bytes(section_headers)),
+                  "Could not write back section headers to executable".to_owned());
+
+    Ok(())
 }

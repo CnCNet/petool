@@ -57,13 +57,27 @@ pub fn open_pe(executable : &Path, access : io::FileAccess)
         io::Open, access)
 }
 
-pub fn seek_nt_headers<T : Reader + Seek>(pe : &mut T) -> io::IoResult<()> {
+pub fn seek_nt_header<T : Reader + Seek>(pe : &mut T) -> io::IoResult<i64> {
     try!(pe.seek(
         field_offset!(IMAGE_DOS_HEADER, e_lfanew) as i64,
         io::SeekSet));
     let nt_offset = try!(pe.read_le_u16()) as i64;
     try!(pe.seek(nt_offset, io::SeekSet));
-    Ok(())
+    Ok(nt_offset)
+}
+
+// assumes at end of the NT Header
+pub fn seek_section_headers<T : Seek>
+    (pe : &mut T, nt_header : &IMAGE_NT_HEADERS)
+    -> io::IoResult<i64> {
+
+    // in case OptionalHeader's actual size is different
+    try!(pe.seek(
+        nt_header.FileHeader.SizeOfOptionalHeader as i64
+            - ::std::mem::size_of::<IMAGE_OPTIONAL_HEADER>() as i64,
+        io::SeekCur));
+
+    Ok(try!(pe.tell()) as i64)
 }
 
 /// checks DOS and PE signatures
@@ -75,7 +89,7 @@ pub fn validate_pe<T : Reader + Seek>(pe : &mut T) -> io::IoResult<()> {
     fail_if!(try!(pe.read_le_u16()) != IMAGE_DOS_SIGNATURE,
              "invalid DOS signature.");
 
-    try!(seek_nt_headers(pe));
+    try!(seek_nt_header(pe));
 
     // seek NT Signature
     try!(pe.seek(
@@ -89,27 +103,47 @@ pub fn validate_pe<T : Reader + Seek>(pe : &mut T) -> io::IoResult<()> {
 pub fn read_headers<T : Reader + Seek> (pe : &mut T)
     -> io::IoResult<(Box<IMAGE_NT_HEADERS>, ~[IMAGE_SECTION_HEADER])> {
 
-    try!(seek_nt_headers(pe));
+    try!(seek_nt_header(pe));
 
     let nt_header : Box<IMAGE_NT_HEADERS> = unsafe {
-        let temp = try!(pe.read_exact(intrinsics::size_of::<IMAGE_NT_HEADERS>()));
+        let temp = try!(pe.read_exact(::std::mem::size_of::<IMAGE_NT_HEADERS>()));
         intrinsics::transmute(temp.as_ptr())
     };
 
-    // in case OptionalHeader's actual size is different
-    try!(pe.seek(
-        nt_header.FileHeader.SizeOfOptionalHeader as i64
-            - unsafe { intrinsics::size_of::<IMAGE_OPTIONAL_HEADER>() } as i64,
-        io::SeekCur));
+    try!(seek_section_headers(pe, nt_header));
 
     let section_headers : ~[IMAGE_SECTION_HEADER] = unsafe {
         let temp = try!(pe.read_exact(
             nt_header.FileHeader.NumberOfSections as uint
-                * intrinsics::size_of::<IMAGE_SECTION_HEADER>()));
+                * ::std::mem::size_of::<IMAGE_SECTION_HEADER>()));
         intrinsics::transmute::<~[u8],_>(::std::vec::FromVec::from_vec(temp))
     };
 
     assert_eq!(section_headers.len(), nt_header.FileHeader.NumberOfSections as uint);
 
     Ok((nt_header, section_headers))
+}
+
+pub fn as_bytes<'a, T>(x: &'a T) -> &'a [u8] {
+    let singleton = ::std::slice::ref_slice(x);
+    let bytes : &'a [u8] = unsafe {
+        use std::raw::Repr;
+        let mut bytes = singleton.repr();
+        bytes.len = ::std::mem::size_of::<T>();
+        intrinsics::transmute(bytes)
+    };
+    assert_eq!(::std::mem::size_of::<T>(), bytes.len());
+    bytes
+}
+
+pub fn array_as_bytes<'a, T>(x: &'a [T]) -> &'a [u8] {
+    let len = x.len();
+    let bytes : &'a [u8] = unsafe {
+        use std::raw::Repr;
+        let mut bytes = x.repr();
+        bytes.len *= ::std::mem::size_of::<T>();
+        intrinsics::transmute(bytes)
+    };
+    assert_eq!(len * ::std::mem::size_of::<T>(), bytes.len());
+    bytes
 }

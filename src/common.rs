@@ -57,29 +57,13 @@ pub fn open_pe(executable : &Path, access : io::FileAccess)
         io::Open, access)
 }
 
-fn seek_nt_header<T : Reader + Seek>(pe : &mut T) -> io::IoResult<i64> {
+pub fn seek_nt_header<T : Reader + Seek>(pe : &mut T) -> io::IoResult<i64> {
     try!(pe.seek(
         field_offset!(IMAGE_DOS_HEADER, e_lfanew) as i64,
         io::SeekSet));
     let nt_offset = try!(pe.read_le_u16()) as i64;
     try!(pe.seek(nt_offset, io::SeekSet));
     Ok(nt_offset)
-}
-
-// assumes at end of the NT Header
-fn seek_section_headers<T : Seek> (
-    pe        : &mut T,
-    nt_header : &IMAGE_NT_HEADERS
-        ) -> io::IoResult<i64>
-{
-
-    // in case OptionalHeader's actual size is different
-    try!(pe.seek(
-        nt_header.FileHeader.SizeOfOptionalHeader as i64
-            - ::std::mem::size_of::<IMAGE_OPTIONAL_HEADER>() as i64,
-        io::SeekCur));
-
-    Ok(try!(pe.tell()) as i64)
 }
 
 /// checks DOS and PE signatures
@@ -103,9 +87,9 @@ pub fn validate_pe<T : Reader + Seek> (pe : &mut T) -> io::IoResult<()>
     Ok(())
 }
 
-pub fn read_headers<T : Reader + Seek> (
+pub fn read_nt_header<T : Reader + Seek> (
     pe : &mut T
-        ) -> io::IoResult<(Box<IMAGE_NT_HEADERS>, ~[IMAGE_SECTION_HEADER])>
+        ) -> io::IoResult<(Box<IMAGE_NT_HEADERS>)>
 {
     try!(seek_nt_header(pe));
 
@@ -114,7 +98,20 @@ pub fn read_headers<T : Reader + Seek> (
         intrinsics::transmute(temp.as_ptr())
     };
 
-    try!(seek_section_headers(pe, nt_header));
+    Ok(nt_header)
+}
+
+pub fn read_headers<T : Reader + Seek> (
+    pe : &mut T
+        ) -> io::IoResult<(Box<IMAGE_NT_HEADERS>, ~[IMAGE_SECTION_HEADER])>
+{
+    let nt_header = try!(read_nt_header(pe));
+
+    // subtraction in case OptionalHeader's actual size is different
+    try!(pe.seek(
+        nt_header.FileHeader.SizeOfOptionalHeader as i64
+            - ::std::mem::size_of::<IMAGE_OPTIONAL_HEADER>() as i64,
+        io::SeekCur));
 
     let section_headers : ~[IMAGE_SECTION_HEADER] = unsafe {
         let temp = try!(pe.read_exact(
@@ -128,7 +125,7 @@ pub fn read_headers<T : Reader + Seek> (
     Ok((nt_header, section_headers))
 }
 
-fn as_bytes<'a, T>(x: &'a T) -> &'a [u8] {
+pub fn as_bytes<'a, T>(x: &'a T) -> &'a [u8] {
     let singleton = ::std::slice::ref_slice(x);
     let bytes : &'a [u8] = unsafe {
         use std::raw::Repr;
@@ -140,7 +137,7 @@ fn as_bytes<'a, T>(x: &'a T) -> &'a [u8] {
     bytes
 }
 
-fn array_as_bytes<'a, T>(x: &'a [T]) -> &'a [u8] {
+pub fn array_as_bytes<'a, T>(x: &'a [T]) -> &'a [u8] {
     let len = x.len();
     let bytes : &'a [u8] = unsafe {
         use std::raw::Repr;

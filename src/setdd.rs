@@ -10,7 +10,7 @@ pub fn main(args : &[~str]) -> io::IoResult<()> {
 
     try!(common::validate_pe(&mut file));
 
-    let (mut nt_header, _) = try!(common::read_headers(&mut file));
+    let mut nt_header = try!(common::read_nt_header(&mut file));
 
     let dd = read_arg!(1);
     fail_if!(nt_header.OptionalHeader.NumberOfRvaAndSizes <= dd as u32,

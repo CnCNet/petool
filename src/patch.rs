@@ -1,119 +1,93 @@
-use std;
-use std::cast::transmute;
-use std::intrinsics::offset;
 use std::io;
-use std::io::BufReader;
 
 use common;
-use pe::*;
+use pe;
 
-pub unsafe fn main(args : &[~str]) -> Result<(), ~str> {
+pub fn main(args : &[~str]) -> io::IoResult<()>
+{
+    fail_if!(args.len() < 1, "usage: petool patch <image> [section]");
 
-    fail_if!(args.len() < 1, ~"usage: petool patch <image> [section]");
+    let path = &Path::new(args[0].as_slice());
+    let mut reader = try!(common::open_pe(path, io::Read));
+    let mut writer = try!(common::open_pe(path, io::ReadWrite)); // need two positions
 
-    let (mut file, mut image) =
-        try!(common::open_and_read(&Path::new(args[0].as_slice()), io::ReadWrite));
+    try!(common::validate_pe(&mut reader));
 
-    fail_if!(image.len() < 512,                      ~"File too small.");
+    let (nt_header, section_headers) = try!(common::read_headers(&mut reader));
 
-    let dos_hdr : &IMAGE_DOS_HEADER = transmute(image.as_ptr());
-    fail_if!(dos_hdr.e_magic != IMAGE_DOS_SIGNATURE, ~"File DOS signature invalid.");
+    let name : &str = if args.len() > 2 { args[1].as_slice() } else { ".patch" };
 
-    let nt_hdr  : &IMAGE_NT_HEADERS =
-        transmute(offset(transmute::<_,*u8>(dos_hdr), dos_hdr.e_lfanew as int));
-    fail_if!(nt_hdr.Signature != IMAGE_NT_SIGNATURE, ~"File NT signature invalid.");
+    try!(writer.seek(try!(reader.tell()) as i64, io::SeekSet)); // sync positions
 
-    let section : &str = if args.len() > 2 { args[1].as_slice() } else { &".patch" };
+    let patch_section = match section_headers.iter().find(
+        |cur_sct| ::std::str::from_utf8(cur_sct.Name.as_slice()) == Some(name))
+    {
+        None => return Err(common::new_error("No patch section",
+                              Some(format!("searched for name = {}", name)))),
+        Some(section) => section
+    };
 
-    let mut patch_sct = Err(~"No '%s' section in given PE image.");
+    try!(reader.seek(
+        (patch_section.PointerToRawData + nt_header.OptionalHeader.ImageBase) as i64,
+        io::SeekSet));
 
-    for i in range(0, nt_hdr.FileHeader.NumberOfSections) {
-        let cur_sct : &IMAGE_SECTION_HEADER =
-            transmute(offset(IMAGE_FIRST_SECTION(nt_hdr), i as int));
+    try!(patch_all(&mut reader, &mut writer, nt_header, section_headers));
 
-        let name = match std::str::from_utf8(cur_sct.Name.as_slice()) {
-            None    => continue,
-            Some(s) => s,
-        };
-        if name == section {
-            patch_sct = Ok(cur_sct);
-            break;
-        }
-    }
-
-    let patch_sct = try!(patch_sct); // will return error if not set in loop
-
-    { // naked block to limit lifetimes
-        let (pre_patches, rest)       = image.mut_split_at(patch_sct.PointerToRawData   as uint);
-        let (patch_buf, post_patches) = rest.mut_split_at(
-            (nt_hdr.OptionalHeader.ImageBase + patch_sct.PhysAddrORVirtSize) as uint);
-        let patches = &mut BufReader::new(patch_buf);
-
-        try!(apply_all(patches, patch_buf, pre_patches, post_patches, patch_sct.PointerToRawData));
-
-        { // FIXME: implement checksum calculation
-            let mut h = nt_hdr.OptionalHeader;
-            h.CheckSum = 0;
-        }
-    }
-
-    try_complain!(file.seek(0, io::SeekSet),    ~"Failed to rewind file for writing");
-    try_complain!(file.write(image.as_slice()), ~"Error writing executable");
     Ok(())
 }
 
-unsafe fn apply_all(
-    patches : &mut BufReader, patch_buf : &[u8],
-    pre  : &mut [u8], post : &mut [u8], skip_offset : u32
-) -> Result<(), ~str> {
-    let err = ~"Could not read next patch";
+fn patch_all<In : Reader, Out : Reader + Writer + Seek>(
+    patches         : &mut In,
+    out             : &mut Out,
+    nt_header       : &pe::IMAGE_NT_HEADERS,
+    section_headers : &[pe::IMAGE_SECTION_HEADER]
+        ) -> io::IoResult<()>
+{
+    static err_msg : &'static str = "Could not read next patch";
     loop {
-        let addr = match patches.read_le_u32() {
-            Ok(addr) => if addr   == 0             { return Ok(()); } else { addr },
-            Err(e)   => if e.kind == io::EndOfFile { return Ok(()); } else { return Err(err); }
-        };
-        let len   = try_complain!(patches.read_le_u32(), err);
-        let patch = patch_buf.slice_from(len as uint).slice_to(addr as uint);
-        try_complain!(patches.seek(len as i64, io::SeekCur), err);
-        try!(patch_image(addr, patch, pre, post, skip_offset));
+        let address = try_complain!(patches.read_le_u32(), err_msg.to_owned());
+        if address == 0 { return Ok(()); } // patches are null teriminated
+
+        let length = try_complain!(patches.read_le_u32(), err_msg.to_owned());
+        let patch_data = patches.read_exact(length as uint);
+
+        try!(patch(try!(patch_data).as_slice(), address,
+                   out, nt_header, section_headers));
     }
 }
 
-
-unsafe fn patch_image(
-    address : u32, patch : &[u8], pre  : &mut [u8], post : &mut [u8], skip_offset : u32
-) -> Result<(), ~str> {
-    let dos_hdr : &IMAGE_DOS_HEADER = transmute(pre.as_ptr());
-    let nt_hdr  : &IMAGE_NT_HEADERS =
-        transmute(offset(transmute::<_,*u8>(dos_hdr), dos_hdr.e_lfanew as int));
-
-    for i in range(0, nt_hdr.FileHeader.NumberOfSections)
+fn patch<Out : Reader + Writer + Seek>(
+    patch           : &[u8],
+    address         : u32,
+    out             : &mut Out,
+    nt_header       : &pe::IMAGE_NT_HEADERS,
+    section_headers : &[pe::IMAGE_SECTION_HEADER]
+        ) -> io::IoResult<()>
+{
+    let dest_section = match section_headers.iter().find(
+        |cur_sct| {
+            let runtime_base_address =
+                cur_sct.VirtualAddress + nt_header.OptionalHeader.ImageBase;
+            address >= runtime_base_address &&
+                address < runtime_base_address + cur_sct.SizeOfRawData
+        })
     {
-
-        let cur_sct : &IMAGE_SECTION_HEADER =
-            transmute(offset(IMAGE_FIRST_SECTION(nt_hdr), i as int));
-
-        let cur_sct_runtime_base_address =
-            cur_sct.VirtualAddress + nt_hdr.OptionalHeader.ImageBase;
-        if  address <  cur_sct_runtime_base_address ||
-            address >= cur_sct_runtime_base_address + cur_sct.SizeOfRawData {
-            continue;
-        }
-        let common_offset = address - nt_hdr.OptionalHeader.ImageBase + cur_sct.PointerToRawData;
-        let patchee = match cur_sct.PointerToRawData.cmp(&skip_offset) {
-            Equal   => continue, // can't patch the patches section!
-            Less    => pre. mut_slice_from( common_offset                as uint),
-            Greater => post.mut_slice_from((common_offset - skip_offset) as uint)
-        };
-        if cur_sct.SizeOfRawData + cur_sct_runtime_base_address < patch.len() as u32 + address
-        {
-            return Err(format!(
-                "Error: section length ({:u}) is less than patch length ({:X}), maybe expand the image a bit more?\n",
-                cur_sct.SizeOfRawData, patch.len()));
-        }
-        std::slice::bytes::copy_memory(patchee, patch);
-        println!("PATCH  {:8u} bytes -> {:8X}", patch.len(), address);
-        return Ok(());
+        None => return Err(common::new_error("patch begin address out of bounds",
+                                             Some(format!("address = {:8X}", address)))),
+        Some(section) => section
+    };
+    // pitty I need to define it again
+    let runtime_base_address = dest_section.VirtualAddress + nt_header.OptionalHeader.ImageBase;
+    if dest_section.SizeOfRawData + runtime_base_address < patch.len() as u32 + address
+    {
+        return Err(common::new_error(
+            "patch longer than remaining length of section, maybe expand the image a bit more?",
+            Some(format!("section length = {:u}; patch length = {:X}",
+                         dest_section.SizeOfRawData, patch.len()))));
     }
-    Err(format!("Error: memory address {:8X} not found in image", address))
+    try!(out.seek((address - runtime_base_address + dest_section.PointerToRawData) as i64,
+                  io::SeekSet));
+    try!(out.write(patch));
+    println!("PATCH  {:8u} bytes -> {:8X}", patch.len(), address);
+    Ok(())
 }

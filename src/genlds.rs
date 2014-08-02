@@ -1,25 +1,25 @@
 use std;
-use std::cast::transmute;
+use std::mem::transmute;
 use std::intrinsics::offset;
 use std::io;
 
 use common;
 use pe::*;
 
-pub unsafe fn main(args : &[~str]) -> Result<(), ~str> {
+pub unsafe fn main(args : &[Box<str>]) -> Result<(), Box<str>> {
 
-    fail_if!(args.len() != 1, ~"usage: petool genlds <image>");
+    fail_if!(args.len() != 1, box "usage: petool genlds <image>");
 
 
     let (_, image) = try!(common::open_and_read(&Path::new(args[0].as_slice()), io::Read));
-    fail_if!(image.len() < 512,                      ~"File too small.");
+    fail_if!(image.len() < 512,                      box "File too small.");
 
     let dos_hdr : &IMAGE_DOS_HEADER = transmute(image.as_ptr());
-    fail_if!(dos_hdr.e_magic != IMAGE_DOS_SIGNATURE, ~"File DOS signature invalid.");
+    fail_if!(dos_hdr.e_magic != IMAGE_DOS_SIGNATURE, box "File DOS signature invalid.");
 
     let nt_hdr  : &IMAGE_NT_HEADERS =
-        transmute(offset(transmute::<_,*u8>(dos_hdr), dos_hdr.e_lfanew as int));
-    fail_if!(nt_hdr.Signature != IMAGE_NT_SIGNATURE, ~"File NT signature invalid.");
+        transmute(offset(transmute::<_,*const u8>(dos_hdr), dos_hdr.e_lfanew as int));
+    fail_if!(nt_hdr.Signature != IMAGE_NT_SIGNATURE, box "File NT signature invalid.");
 
     println!("/* GNU ld linker script for {} */", args[0]);
     println!("start = {:#0.X};",
@@ -27,7 +27,7 @@ pub unsafe fn main(args : &[~str]) -> Result<(), ~str> {
 
     println!("ENTRY(start);");
     println!("SECTIONS");
-    std::io::stdio::println("{");
+    println!("{{");
 
     for i in range(0, nt_hdr.FileHeader.NumberOfSections)
     {
@@ -39,10 +39,10 @@ pub unsafe fn main(args : &[~str]) -> Result<(), ~str> {
             Some(s) => s,
         };
 
-        println!("    {0: <15.} {1:#0.X} : \\{ *({0}) \\}",
+        println!("    {0: <15.} {1:#0.X} : {{ *({0}) }}",
                  name, cur_sct.VirtualAddress + nt_hdr.OptionalHeader.ImageBase);
     }
 
-    println!("\\}");
+    println!("}}");
     Ok(())
 }

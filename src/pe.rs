@@ -3,7 +3,7 @@
 #![allow(uppercase_variables)]
 // based on MingW headers converted to stdint, and then to rust
 
-use std::cast::transmute;
+use std::mem::transmute;
 use std::intrinsics::offset;
 
 use collections::enum_set::CLike;
@@ -76,7 +76,7 @@ pub static IMAGE_NUMBEROF_DIRECTORY_ENTRIES : u8 = 16;
 
 #[inline]
 pub unsafe fn IMAGE_FIRST_SECTION<'a>(h : &'a IMAGE_NT_HEADERS) -> &'a IMAGE_SECTION_HEADER {
-    transmute(offset(transmute::<_,*u8>(&h.OptionalHeader),
+    transmute(offset(transmute::<_,*const u8>(&h.OptionalHeader),
                      h.FileHeader.SizeOfOptionalHeader as int))
 }
 

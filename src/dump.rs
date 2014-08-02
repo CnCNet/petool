@@ -1,5 +1,5 @@
 use std;
-use std::cast::transmute;
+use std::mem::transmute;
 use std::intrinsics::offset;
 use std::io;
 
@@ -9,19 +9,19 @@ use common;
 use pe::*;
 
 
-pub unsafe fn main(args : &[~str]) -> Result<(), ~str> {
+pub unsafe fn main(args : &[Box<str>]) -> Result<(), Box<str>> {
 
-    fail_if!(args.len() !=1,                         ~"usage: petool dump <image>");
+    fail_if!(args.len() !=1,                         box "usage: petool dump <image>");
 
     let (_, image) = try!(common::open_and_read(&Path::new(args[0].as_slice()), io::Read));
-    fail_if!(image.len() < 512,                      ~"File too small.");
+    fail_if!(image.len() < 512,                      box "File too small.");
 
     let dos_hdr : &IMAGE_DOS_HEADER = transmute(image.as_ptr());
-    fail_if!(dos_hdr.e_magic != IMAGE_DOS_SIGNATURE, ~"File DOS signature invalid.");
+    fail_if!(dos_hdr.e_magic != IMAGE_DOS_SIGNATURE, box "File DOS signature invalid.");
 
     let nt_hdr  : &IMAGE_NT_HEADERS =
-        transmute(offset(transmute::<_,*u8>(dos_hdr), dos_hdr.e_lfanew as int));
-    fail_if!(nt_hdr.Signature != IMAGE_NT_SIGNATURE, ~"File NT signature invalid.");
+        transmute(offset(transmute::<_,*const u8>(dos_hdr), dos_hdr.e_lfanew as int));
+    fail_if!(nt_hdr.Signature != IMAGE_NT_SIGNATURE, box "File NT signature invalid.");
 
     println!(" section    start      end   length    vaddr    vsize  flags");
     println!("------------------------------------------------------------");

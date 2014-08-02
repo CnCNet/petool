@@ -1,0 +1,9 @@
+[package]
+
+name = "petool"
+version = "0.1.0"
+authors = [ "Sonarpulse", "Hifi" ]
+
+[[bin]]
+name = "petool"
+test = false

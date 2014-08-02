@@ -26,14 +26,14 @@ static help : &'static str = "commands:
     setvs  -- set VirtualSize for a section
     help   -- this information";
 
-fn render_help(progname : &str) -> ~str {
+fn render_help(progname : &str) -> Box<str> {
     format!("usage: {} <command> [args ...]\n{}", progname, help)
 }
 
 #[allow(unused_must_use)]
 pub fn main() {
     let mut stderr = std::io::stdio::stderr();
-    let args : ~[~str] = std::os::args();
+    let args : Box<[Box<str>]> = std::os::args();
 
     let ret = match root(args) {
         Ok(_)  => EXIT_SUCCESS,
@@ -46,7 +46,7 @@ pub fn main() {
 }
 
 
-fn root(args : &[~str]) -> Result<(), ~str> {
+fn root(args : &[Box<str>]) -> Result<(), Box<str>> {
     if args.len() < 2 {
         Err(format!(
             "No command given: please give valid command name as first argument\n{}",

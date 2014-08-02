@@ -1,4 +1,4 @@
-use std::cast::transmute;
+use std::mem::transmute;
 use std::intrinsics::offset;
 use std::io;
 use std::io::{File, Truncate};
@@ -8,19 +8,19 @@ use collections::enum_set::EnumSet;
 use common;
 use pe::*;
 
-pub unsafe fn main(args : &[~str]) -> Result<(), ~str> {
+pub unsafe fn main(args : &[Box<str>]) -> Result<(), Box<str>> {
 
-    fail_if!(args.len() != 2, ~"usage: petool pe2obj <in> <out>");
+    fail_if!(args.len() != 2, box "usage: petool pe2obj <in> <out>");
 
     let (_, image) = try!(common::open_and_read(&Path::new(args[0].as_slice()), io::Read));
-    fail_if!(image.len() < 512,                      ~"File too small.");
+    fail_if!(image.len() < 512,                      box "File too small.");
 
     let dos_hdr : &IMAGE_DOS_HEADER = transmute(image.as_ptr());
-    fail_if!(dos_hdr.e_magic != IMAGE_DOS_SIGNATURE, ~"File DOS signature invalid.");
+    fail_if!(dos_hdr.e_magic != IMAGE_DOS_SIGNATURE, box "File DOS signature invalid.");
 
     let nt_hdr  : &IMAGE_NT_HEADERS =
-        transmute(offset(transmute::<_,*u8>(dos_hdr), dos_hdr.e_lfanew as int));
-    fail_if!(nt_hdr.Signature != IMAGE_NT_SIGNATURE, ~"File NT signature invalid.");
+        transmute(offset(transmute::<_,*const u8>(dos_hdr), dos_hdr.e_lfanew as int));
+    fail_if!(nt_hdr.Signature != IMAGE_NT_SIGNATURE, box "File NT signature invalid.");
 
     for i in range(0, nt_hdr.FileHeader.NumberOfSections)
     {
@@ -44,11 +44,11 @@ pub unsafe fn main(args : &[~str]) -> Result<(), ~str> {
 
 
     let mut out_file = try_complain!(File::open_mode(&Path::new(args[1].as_slice()), Truncate, io::Write),
-                                  ~"Could not open output object file");
+                                  box "Could not open output object file");
 
     let out_buf = image.as_slice().slice_from((dos_hdr.e_lfanew + 4) as uint);
 
-    try_complain!(out_file.write(out_buf), ~"Failed to write object file to output file");
+    try_complain!(out_file.write(out_buf), box "Failed to write object file to output file");
 
     Ok(())
 }

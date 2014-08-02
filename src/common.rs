@@ -11,21 +11,21 @@ macro_rules! fail_if(
     ($e:expr, $s:expr) => (if $e { return Err($s) })
 )
 
-macro_rules! read_arg(
-    [$n:expr] => (match ::std::from_str::from_str::<uint>(args[$n]) {
+fn read_arg<T>(args : &[Box<str>], n : int) -> T {
+    match ::std::from_str::from_str::<T>(args[n]) {
         Some(n) => n,
-        None    => return Err(format!("could not parse argument number {}", $n))
-    })
-)
+        None    => return Err(format!("could not parse argument number {}", n))
+    }
+}    
 
 // Caller cleans up fh and image, length is optional
 pub fn open_and_read(executable : &Path, access : FileAccess)
-                     -> Result<(File, Vec<u8>), ~str> {
+                     -> Result<(File, Vec<u8>), Box<str>> {
 
     let mut file = try_complain!(File::open_mode(executable, Open, access),
-                                 ~"Could not open executable");
+                                 box "Could not open executable");
     let contents = try_complain!(file.read_to_end(),
-                                 ~"Error reading executable");
+                                 box "Error reading executable");
 
     Ok((file, contents))
 }

@@ -62,8 +62,15 @@ int genlds(int argc, char **argv)
         char buf[9];
         memset(buf, 0, sizeof buf);
         memcpy(buf, cur_sct->Name, 8);
-        printf("    %-15s 0x%-8"PRIX32" : { *(%s) }\n", buf, cur_sct->VirtualAddress + nt_hdr->OptionalHeader.ImageBase, buf);
+        printf("    %-15s 0x%-8"PRIX32" : { %s(%s) }\n", buf, cur_sct->VirtualAddress + nt_hdr->OptionalHeader.ImageBase, argv[1], buf);
     }
+
+    printf("\n");
+    printf("    /DISCARD/                  : { *(.drectve) }\n");
+    printf("    .p_text                    : { *(.text); }\n");
+    printf("    .p_rdata                   : { *(.rdata); }\n");
+    printf("    .p_data                    : { *(.data) *(.bss) *(COMMON); }\n\n");
+    printf("    .patch                     : { *(.patch) }\n");
 
     printf("}\n");
 

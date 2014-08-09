@@ -1,17 +1,19 @@
-CC	?= gcc
-RM	?= rm -f
-CFLAGS	 = -O2 -std=c99 -pedantic -Wall -Wextra -DREV=\"$(shell git rev-parse --short @{0})\"
+REV     ?= $(shell git rev-parse --short @{0})
+CC      ?= gcc
+RM      ?= rm -f
+CFLAGS  ?= -std=c99 -pedantic -Wall -Wextra -DREV=\"$(REV)\"
 
 ifdef DEBUG
-CFLAGS	+= -ggdb
+CFLAGS  += -ggdb
+else
+CFLAGS  += -O2
 endif
 
-all: petool$(EXT)
+all: petool
 
-petool$(EXT): src/*.c
-	$(CC) $(CFLAGS) -o $@ $?
-
-clean:
-	$(RM) petool$(EXT)
+petool: $(wildcard src/*.c)
+	$(CC) $(CFLAGS) -o $@ $^
 
 .PHONY: clean
+clean:
+	$(RM) petool

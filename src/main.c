@@ -25,6 +25,7 @@ int patch(int argc, char **argv);
 int setdd(int argc, char **argv);
 int setvs(int argc, char **argv);
 int export(int argc, char **argv);
+int import(int argc, char **argv);
 
 void help(char *progname)
 {
@@ -38,6 +39,7 @@ void help(char *progname)
             "    setdd  -- set any DataDirectory in PE header"                  "\n"
             "    setvs  -- set VirtualSize for a section"                       "\n"
             "    export -- export section data as raw binary"                   "\n"
+            "    import -- dump the import table as assembly"                   "\n"
             "    help   -- this information"                                    "\n"
     );
 }
@@ -57,6 +59,7 @@ int main(int argc, char **argv)
     else if (strcmp(argv[1], "setdd")  == 0) return setdd  (argc - 1, argv + 1);
     else if (strcmp(argv[1], "setvs")  == 0) return setvs  (argc - 1, argv + 1);
     else if (strcmp(argv[1], "export") == 0) return export (argc - 1, argv + 1);
+    else if (strcmp(argv[1], "import") == 0) return import (argc - 1, argv + 1);
     else if (strcmp(argv[1], "help")   == 0)
     {
         help(argv[0]);

@@ -151,4 +151,12 @@ typedef struct _IMAGE_SECTION_HEADER {
     uint32_t Characteristics;
 } IMAGE_SECTION_HEADER, *PIMAGE_SECTION_HEADER;
 
+typedef struct _IMAGE_IMPORT_DESCRIPTOR {
+    uint32_t OriginalFirstThunk;
+    uint32_t TimeDateStamp;
+    uint32_t ForwarderChain;
+    uint32_t Name;
+    uint32_t FirstThunk;
+} IMAGE_IMPORT_DESCRIPTOR;
+
 #pragma pack(pop)

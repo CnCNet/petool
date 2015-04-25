@@ -49,7 +49,7 @@ int import(int argc, char **argv)
     FILE   *fh    = NULL;
     int8_t *image = NULL;
 
-    FAIL_IF(argc < 2, "usage: petool import <image>\n");
+    FAIL_IF(argc < 2, "usage: petool import <image> [nasm]\n");
 
     uint32_t length;
     FAIL_IF_SILENT(open_and_read(&fh, &image, &length, argv[1], "r"));
@@ -62,26 +62,58 @@ int import(int argc, char **argv)
     uint32_t offset = rva_to_offset(nt_hdr->OptionalHeader.ImageBase + nt_hdr->OptionalHeader.DataDirectory[1].VirtualAddress, nt_hdr);
     IMAGE_IMPORT_DESCRIPTOR *i = (void *)(image + offset);
 
-    printf("/* Imports for %s */\n", argv[1]);
-    printf(".section .idata\n\n");
-
-    while (1) {
-        if (i->Name != 0) {
-            char *name = (char *)(image + rva_to_offset(nt_hdr->OptionalHeader.ImageBase + i->Name, nt_hdr));
-            printf("/* %s */\n", name);
-        } else {
-            printf("/* END */\n");
-        }
-        printf(".long 0x%"PRIX32" /* OriginalFirstThunk */\n", i->OriginalFirstThunk);
-        printf(".long 0x%"PRIX32" /* TimeDateStamp */\n", i->TimeDateStamp);
-        printf(".long 0x%"PRIX32" /* ForwarderChain */\n", i->ForwarderChain);
-        printf(".long 0x%"PRIX32" /* Name */\n", i->Name);
-        printf(".long 0x%"PRIX32" /* FirstThunk */\n", i->FirstThunk);
+    if (argc > 2 && toupper(argv[2][0]) == 'N') {
+        printf("; Imports for %s\n", argv[1]);
+        printf("ImageBase equ 0x%"PRIX32"\n", nt_hdr->OptionalHeader.ImageBase);
         printf("\n");
+        printf("section .idata\n\n");
 
-        if (i->OriginalFirstThunk == 0)
-            break;
-        i++;
+        while (1) {
+            if (i->Name != 0) {
+                char *name = (char *)(image + rva_to_offset(nt_hdr->OptionalHeader.ImageBase + i->Name, nt_hdr));
+                printf("; %s\n", name);
+            } else {
+                printf("; END\n");
+            }
+
+            printf("dd 0x%-8"PRIX32" ; OriginalFirstThunk\n", i->OriginalFirstThunk);
+            printf("dd 0x%-8"PRIX32" ; TimeDateStamp\n", i->TimeDateStamp);
+            printf("dd 0x%-8"PRIX32" ; ForwarderChain\n", i->ForwarderChain);
+            printf("dd 0x%-8"PRIX32" ; Name\n", i->Name);
+            printf("dd 0x%-8"PRIX32" ; FirstThunk\n", i->FirstThunk);
+
+            printf("\n");
+
+            if (i->OriginalFirstThunk == 0)
+                break;
+            i++;
+        }
+    } else {
+        printf("/* Imports for %s */\n", argv[1]);
+        printf(".equ ImageBase, 0x%"PRIX32"\n", nt_hdr->OptionalHeader.ImageBase);
+        printf("\n");
+        printf(".section .idata\n\n");
+
+        while (1) {
+            if (i->Name != 0) {
+                char *name = (char *)(image + rva_to_offset(nt_hdr->OptionalHeader.ImageBase + i->Name, nt_hdr));
+                printf("/* %s */\n", name);
+            } else {
+                printf("/* END */\n");
+            }
+
+            printf(".long 0x%-8"PRIX32" /* OriginalFirstThunk */\n", i->OriginalFirstThunk);
+            printf(".long 0x%-8"PRIX32" /* TimeDateStamp */\n", i->TimeDateStamp);
+            printf(".long 0x%-8"PRIX32" /* ForwarderChain */\n", i->ForwarderChain);
+            printf(".long 0x%-8"PRIX32" /* Name */\n", i->Name);
+            printf(".long 0x%-8"PRIX32" /* FirstThunk */\n", i->FirstThunk);
+
+            printf("\n");
+
+            if (i->OriginalFirstThunk == 0)
+                break;
+            i++;
+        }
     }
 
 cleanup:

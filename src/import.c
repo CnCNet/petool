@@ -52,7 +52,7 @@ int import(int argc, char **argv)
     FAIL_IF(argc < 2, "usage: petool import <image> [nasm]\n");
 
     uint32_t length;
-    FAIL_IF_SILENT(open_and_read(&fh, &image, &length, argv[1], "r"));
+    FAIL_IF_SILENT(open_and_read(&fh, &image, &length, argv[1], "rb"));
 
     PIMAGE_DOS_HEADER dos_hdr = (void *)image;
     PIMAGE_NT_HEADERS nt_hdr = (void *)(image + dos_hdr->e_lfanew);

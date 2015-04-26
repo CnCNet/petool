@@ -62,15 +62,15 @@ int genlds(int argc, char **argv)
         char buf[9];
         memset(buf, 0, sizeof buf);
         memcpy(buf, cur_sct->Name, 8);
-        printf("    %-15s 0x%-8"PRIX32" : { %s(%s) }\n", buf, cur_sct->VirtualAddress + nt_hdr->OptionalHeader.ImageBase, argv[1], buf);
+        printf("    %-15s   0x%-6"PRIX32" : { %s(%s) }\n", buf, cur_sct->VirtualAddress + nt_hdr->OptionalHeader.ImageBase, argv[1], buf);
     }
 
     printf("\n");
     printf("    /DISCARD/                  : { *(.drectve) }\n");
-    printf("    .p_text                    : { *(.text); }\n");
-    printf("    .p_rdata                   : { *(.rdata); }\n");
-    printf("    .p_data                    : { *(.data) *(.bss) *(COMMON); }\n\n");
-    printf("    .patch                     : { *(.patch) }\n");
+    printf("    .p_text      ALIGN(0x%-4"PRIX32") : { *(.text); }\n", nt_hdr->OptionalHeader.SectionAlignment);
+    printf("    .p_rdata     ALIGN(0x%-4"PRIX32") : { *(.rdata); }\n", nt_hdr->OptionalHeader.SectionAlignment);
+    printf("    .p_data      ALIGN(0x%-4"PRIX32") : { *(.data) *(.bss) *(COMMON); }\n\n", nt_hdr->OptionalHeader.SectionAlignment);
+    printf("    .patch       ALIGN(0x%-4"PRIX32") : { *(.patch) }\n", nt_hdr->OptionalHeader.SectionAlignment);
 
     printf("}\n");
 

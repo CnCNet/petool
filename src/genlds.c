@@ -73,6 +73,12 @@ int genlds(int argc, char **argv)
             continue;
         }
 
+        /* resource section is not always directly recompilable even if it doesn't move, better to leave it out */
+        if (strcmp(buf, ".rsrc") == 0) {
+            printf("    /DISCARD/                  : { %s(%s) }\n", argv[1], buf);
+            continue;
+        }
+
         printf("    %-15s   0x%-6"PRIX32" : { %s(%s) }\n", buf, cur_sct->VirtualAddress + nt_hdr->OptionalHeader.ImageBase, argv[1], buf);
 
         if (cur_sct->Misc.VirtualSize > cur_sct->SizeOfRawData) {

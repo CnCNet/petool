@@ -103,7 +103,8 @@ int genlds(int argc, char **argv)
     printf("    /DISCARD/                  : { *(.drectve) }\n");
     printf("    .p_text      ALIGN(0x%-4"PRIX32") : { *(.text); }\n", nt_hdr->OptionalHeader.SectionAlignment);
     printf("    .p_rdata     ALIGN(0x%-4"PRIX32") : { *(.rdata); }\n", nt_hdr->OptionalHeader.SectionAlignment);
-    printf("    .p_data      ALIGN(0x%-4"PRIX32") : { *(.data) *(.bss) *(COMMON); }\n\n", nt_hdr->OptionalHeader.SectionAlignment);
+    printf("    .p_data      ALIGN(0x%-4"PRIX32") : { *(.data); }\n\n", nt_hdr->OptionalHeader.SectionAlignment);
+    printf("    .p_bss       ALIGN(0x%-4"PRIX32") : { *(.bss) *(COMMON); }\n\n", nt_hdr->OptionalHeader.SectionAlignment);
     printf("    .patch       ALIGN(0x%-4"PRIX32") : { *(.patch) }\n", nt_hdr->OptionalHeader.SectionAlignment);
 
     printf("}\n");

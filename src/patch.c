@@ -43,17 +43,17 @@ int patch_image(int8_t *image, uint32_t address, int8_t *patch, uint32_t length)
             if (sct_hdr->SizeOfRawData < length)
             {
                 fprintf(stderr, "Error: section length (%"PRIu32") is less than patch length (%"PRId32"), maybe expand the image a bit more?\n", sct_hdr->SizeOfRawData, length);
-                return EXIT_SUCCESS;
+                return EXIT_FAILURE;
             }
 
             memcpy(image + offset, patch, length);
             printf("PATCH  %8"PRId32" bytes -> %8"PRIX32"\n", length, address);
-            return EXIT_FAILURE;
+            return EXIT_SUCCESS;
         }
     }
 
     fprintf(stderr, "Error: memory address %08"PRIX32" not found in image\n", address);
-    return EXIT_SUCCESS;
+    return EXIT_FAILURE;
 }
 
 uint32_t get_uint32(int8_t * *p)
@@ -66,7 +66,7 @@ uint32_t get_uint32(int8_t * *p)
 int patch(int argc, char **argv)
 {
     // decleration before more meaningful initialization for cleanup
-    int     ret   = EXIT_SUCCESS;
+    int     ret   = EXIT_FAILURE;
     FILE   *fh    = NULL;
     int8_t *image = NULL;
 
@@ -96,15 +96,24 @@ int patch(int argc, char **argv)
         sct_hdr++;
     }
 
-    FAIL_IF(patch == NULL, "No '%s' section in given PE image.\n", section);
+    if (patch == NULL)
+    {
+        fprintf(stderr, "Warning: No '%s' section in given PE image.\n", section);
+        ret = EXIT_SUCCESS;
+        goto cleanup;
+    }
 
     for (int8_t *p = patch; p < patch + patch_len;)
     {
         uint32_t paddress = get_uint32(&p);
-        if (paddress == 0)                             break;
+        if (paddress == 0)
+        {
+            fprintf(stderr, "Warning: Trailing zero address in '%s' section.\n", section);
+            break;
+        }
 
         uint32_t plength = get_uint32(&p);
-        if (!patch_image(image, paddress, p, plength)) break;
+        FAIL_IF_SILENT(patch_image(image, paddress, p, plength) == EXIT_FAILURE);
 
         p += plength;
     }
@@ -115,6 +124,7 @@ int patch(int argc, char **argv)
     rewind(fh);
     FAIL_IF_PERROR(fwrite(image, length, 1, fh) != 1, "Error writing executable");
 
+    ret = EXIT_SUCCESS;
 cleanup:
     if (image) free(image);
     if (fh)    fclose(fh);

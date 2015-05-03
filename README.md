@@ -66,7 +66,7 @@ Below are examples how these macros are used in practice with `GNU as`.
 
 Jumps are your best friend. You can jump from the middle of any function to your
 new code to do custom processing. A jump overwrites the instructions at
-_<from>_ with 5 byte far jump that is converted to a relative jump to _<to>_.
+_from_ with 5 byte far jump that is converted to a relative jump to _to_.
 
 As you probably know, when you jump out, you also need to jump back when you have
 finished with your modifications. Remember to end your label with an absolute
@@ -81,7 +81,7 @@ Example: `memljmp 0x410000 doMagic /* Do a (far) jump from 0x410000 to label doM
 Sometimes you need to replace a single function call instead of the called
 function itself (then you would write a jump beginning of it).
 
-The memcall macro writes a 5 byte CALL instruction at _<from>_ to _<to>_.
+The memcall macro writes a 5 byte CALL instruction at _from_ to _to_.
 
 Example: `memcall 0x410000 doMagic /* Make a call from 0x410000 to label doMagic */`
 
@@ -90,7 +90,7 @@ Example: `memcall 0x410000 doMagic /* Make a call from 0x410000 to label doMagic
     memset <from> <byte> <to>
 
 Clearing is extremely important if you want to keep your target program code
-tidy. _<byte>_ is an 8-bit number being the byte that is written. _<to>_ is
+tidy. _byte_ is an 8-bit number being the byte that is written. _to_ is
 not inclusive.
 
 When you make a `memjmp` or anything else over the original code that would leave
@@ -110,7 +110,7 @@ Maybe a PUSH instruction has the wrong value or some local variable has a bad
 initialization.
 
 `memcpy` macro will write the assembled instructions directly to the specified
-_<address>_ in the executable. You can use labels to local symbols as well.
+_address_ in the executable. You can use labels to local symbols as well.
 
 Example: `memcpy 0x410000 ".long 1; .long 2; .long 3" /* Write three DWORDs to 0x410000 (12 bytes) */`
 

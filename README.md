@@ -14,6 +14,26 @@ Tool to help rebuild and patch 32-bit Windows applications.
  - `export` - export section data as raw binary
  - `import` - dump the import table as assembly
 
+### Note on GNU binutils
+
+You need `GNU binutils` *2.25.51-20150607* or at least commit `9ac47a4` to
+successfully do everything without assertion errors. Fixes are expected to
+land in *2.26* when it is released.
+
+All stable releases before 2.26 suffer from missing absolute reloc support
+for COFF object files which means you can't jump to or call absolute memory
+addresses in `GNU as` assembly and it includes inline assembly with `gcc`.
+
+You can workaround this by using a different assembler with ELF output format 
+(e.g. `nasm -f elf`).
+
+The 2.25 stable release suffers from a regression that makes relinking resource
+sections impossible if the original binary with the `.rsrc` section is included
+in the linker script.
+
+You can workaround this by removing the resource section from the original
+binary before using it in the process.
+
 Building
 --------------------------------------------------------------------------------
 

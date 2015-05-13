@@ -59,7 +59,7 @@ int genlds(int argc, char **argv)
     FAIL_IF(dos_hdr->e_magic != IMAGE_DOS_SIGNATURE, "File DOS signature invalid.\n");
     FAIL_IF(nt_hdr->Signature != IMAGE_NT_SIGNATURE, "File NT signature invalid.\n");
 
-    fprintf(ofh, "/* GNU ld linker script for %s */\n", argv[1]);
+    fprintf(ofh, "/* GNU ld linker script for %s */\n", file_basename(argv[1]));
     fprintf(ofh, "start = 0x%"PRIX32";\n", nt_hdr->OptionalHeader.ImageBase + nt_hdr->OptionalHeader.AddressOfEntryPoint);
     fprintf(ofh, "ENTRY(start);\n");
     fprintf(ofh, "SECTIONS\n");
@@ -87,7 +87,7 @@ int genlds(int argc, char **argv)
             continue;
         }
 
-        fprintf(ofh, "    %-15s   0x%-6"PRIX32" : { %s(%s) }\n", buf, cur_sct->VirtualAddress + nt_hdr->OptionalHeader.ImageBase, argv[1], buf);
+        fprintf(ofh, "    %-15s   0x%-6"PRIX32" : { %s(%s) }\n", buf, cur_sct->VirtualAddress + nt_hdr->OptionalHeader.ImageBase, file_basename(argv[1]), buf);
 
         if (cur_sct->Misc.VirtualSize > cur_sct->SizeOfRawData) {
             fprintf(ofh, "    .bss         ALIGN(0x%-4"PRIX32") : { . = . + 0x%"PRIX32"; }\n", nt_hdr->OptionalHeader.SectionAlignment, cur_sct->Misc.VirtualSize - cur_sct->SizeOfRawData);

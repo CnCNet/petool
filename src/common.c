@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdint.h>
 #include <inttypes.h>
+#include <string.h>
 
 #include "cleanup.h"
 #include "common.h"
@@ -45,4 +46,27 @@ bool file_exists(const char *path)
     }
 
     return false;
+}
+
+const char *file_basename(const char *path)
+{
+    static char basebuf[256];
+    size_t i;
+
+    if (path == NULL)
+        return NULL;
+
+    for (i = strlen(path); i > 0; i--)
+    {
+        if (path[i] == '/' || path[i] == '\\')
+        {
+            i++;
+            break;
+        }
+    }
+
+    strncpy(basebuf, path + i, sizeof basebuf - 1);
+    basebuf[sizeof basebuf - 1] = '\0';
+
+    return basebuf;
 }

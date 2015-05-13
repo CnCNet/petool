@@ -33,3 +33,16 @@ int open_and_read(FILE **fh, int8_t **image, uint32_t *length,
 cleanup:
     return ret;
 }
+
+bool file_exists(const char *path)
+{
+    FILE *fh = fopen(path, "r");
+
+    if (fh)
+    {
+        fclose(fh);
+        return true;
+    }
+
+    return false;
+}

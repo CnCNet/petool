@@ -48,32 +48,41 @@ int dump(int argc, char **argv)
     PIMAGE_NT_HEADERS nt_hdr = (void *)(image + dos_hdr->e_lfanew);
 
     FAIL_IF(length < 512,                            "File too small.\n");
-    FAIL_IF(dos_hdr->e_magic != IMAGE_DOS_SIGNATURE, "File DOS signature invalid.\n");
 
-    //FAIL_IF(nt_hdr->Signature != IMAGE_NT_SIGNATURE, "File NT signature invalid.\n");
     if (nt_hdr->Signature != IMAGE_NT_SIGNATURE)
     {
-        uint32_t exe_start = dos_hdr->e_cparhdr * 16L;
-        uint32_t exe_end = dos_hdr->e_cp * 512L - (dos_hdr->e_cblp ? 512L - dos_hdr->e_cblp : 0);
+        if (dos_hdr->e_magic == IMAGE_DOS_SIGNATURE)
+        {
+            uint32_t exe_start = dos_hdr->e_cparhdr * 16L;
+            uint32_t exe_end = dos_hdr->e_cp * 512L - (dos_hdr->e_cblp ? 512L - dos_hdr->e_cblp : 0);
 
-        printf("DOS Header:\n");
-        printf(" e_magic:    %04X\n", dos_hdr->e_magic);
-        printf(" e_cblp:     %04X\n", dos_hdr->e_cblp);
-        printf(" e_cp:       %04X\n", dos_hdr->e_cp);
-        printf(" e_crlc:     %04X\n", dos_hdr->e_crlc);
-        printf(" e_cparhdr:  %04X\n", dos_hdr->e_cparhdr);
-        printf(" e_minalloc: %04X\n", dos_hdr->e_minalloc);
-        printf(" e_maxalloc: %04X\n", dos_hdr->e_maxalloc);
-        printf(" e_ss:       %04X\n", dos_hdr->e_ss);
-        printf(" e_sp:       %04X\n", dos_hdr->e_sp);
-        printf(" e_csum:     %04X\n", dos_hdr->e_csum);
-        printf(" e_ip:       %04X\n", dos_hdr->e_ip);
-        printf(" e_cs:       %04X\n", dos_hdr->e_cs);
-        printf(" e_lfarlc:   %04X\n", dos_hdr->e_lfarlc);
-        printf(" e_ovno:     %04X\n", dos_hdr->e_ovno);
+            printf("DOS Header:\n");
+            printf(" e_magic:    %04X\n", dos_hdr->e_magic);
+            printf(" e_cblp:     %04X\n", dos_hdr->e_cblp);
+            printf(" e_cp:       %04X\n", dos_hdr->e_cp);
+            printf(" e_crlc:     %04X\n", dos_hdr->e_crlc);
+            printf(" e_cparhdr:  %04X\n", dos_hdr->e_cparhdr);
+            printf(" e_minalloc: %04X\n", dos_hdr->e_minalloc);
+            printf(" e_maxalloc: %04X\n", dos_hdr->e_maxalloc);
+            printf(" e_ss:       %04X\n", dos_hdr->e_ss);
+            printf(" e_sp:       %04X\n", dos_hdr->e_sp);
+            printf(" e_csum:     %04X\n", dos_hdr->e_csum);
+            printf(" e_ip:       %04X\n", dos_hdr->e_ip);
+            printf(" e_cs:       %04X\n", dos_hdr->e_cs);
+            printf(" e_lfarlc:   %04X\n", dos_hdr->e_lfarlc);
+            printf(" e_ovno:     %04X\n", dos_hdr->e_ovno);
 
-        printf("\nEXE data is from offset %04X (%d) to %04X (%d).\n", exe_start, exe_start, exe_end, exe_end);
-        goto cleanup;
+            printf("\nEXE data is from offset %04X (%d) to %04X (%d).\n", exe_start, exe_start, exe_end, exe_end);
+            goto cleanup;
+        }
+
+        // nasty trick but we're careful, right?
+        nt_hdr = (void *)(image - 4);
+        if (nt_hdr->FileHeader.Machine != 0x014C)
+        {
+            fprintf(stderr, "No valid signatures found in input file.\n");
+            goto cleanup;
+        }
     }
 
     printf(" section    start      end   length    vaddr    vsize  flags\n");

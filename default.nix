@@ -1,4 +1,4 @@
-{stdenv ? (import <nixpkgs> {}).stdenv }:
+{stdenv}:
 
 stdenv.mkDerivation rec {
   name = "petool";

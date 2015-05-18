@@ -159,4 +159,25 @@ typedef struct _IMAGE_IMPORT_DESCRIPTOR {
     uint32_t FirstThunk;
 } IMAGE_IMPORT_DESCRIPTOR;
 
+typedef struct _IMAGE_RESOURCE_DIRECTORY {
+    uint32_t Characteristics;
+    uint32_t TimeDateStamp;
+    uint16_t MajorVersion;
+    uint16_t MinorVersion;
+    uint16_t NumberOfNamedEntries;
+    uint16_t NumberOfIdEntries;
+} IMAGE_RESOURCE_DIRECTORY, *PIMAGE_RESOURCE_DIRECTORY;
+
+typedef struct _IMAGE_RESOURCE_DIRECTORY_ENTRY {
+    uint32_t Name;
+    uint32_t OffsetToData;
+} IMAGE_RESOURCE_DIRECTORY_ENTRY, *PIMAGE_RESOURCE_DIRECTORY_ENTRY;
+
+typedef struct _IMAGE_RESOURCE_DATA_ENTRY {
+    uint32_t OffsetToData;
+    uint32_t Size;
+    uint32_t CodePage;
+    uint32_t Reserved;
+} IMAGE_RESOURCE_DATA_ENTRY, *PIMAGE_RESOURCE_DATA_ENTRY;
+
 #pragma pack(pop)

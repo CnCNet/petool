@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Toni Spets <toni.spets@iki.fi>
+ * Copyright (c) 2015 Toni Spets <toni.spets@iki.fi>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -28,26 +28,30 @@
 #include "common.h"
 
 #pragma pack(push,2)
-struct reloc_entry {
-    uint32_t offset;
-    uint32_t unk;
-    uint16_t type;
-};
+typedef struct {
+    char        e_name[8];
+    uint32_t    e_value;
+    int16_t     e_scnum;
+    uint16_t    e_type;
+    uint8_t     e_sclass;
+    uint8_t     e_numaux;
+} t_syment;
 
-struct sym_entry {
-    char e_name[8];
-    uint32_t e_value;
-    int16_t e_scnum;
-    uint16_t e_type;
-    uint8_t e_sclass;
-    uint8_t e_numaux;
-};
+typedef struct {
+    uint32_t    VirtualAddress;
+    uint32_t    SymbolTableIndex;
+    uint16_t    Type;
+} t_reloc;
+
+typedef struct {
+    uint32_t    base;
+    void        *root;
+    t_reloc     relocs[1024];
+    uint32_t    nrelocs;
+} re2obj_s;
 #pragma pack(pop)
 
-struct reloc_entry relocs[1024];
-uint32_t nrelocs = 0;
-
-void traverse_directory(uint32_t base, void *root, PIMAGE_RESOURCE_DIRECTORY rdir, int level)
+void traverse_directory(re2obj_s *state, PIMAGE_RESOURCE_DIRECTORY rdir, int level)
 {
     PIMAGE_RESOURCE_DIRECTORY_ENTRY rdir_ent = (void *)((uint8_t *)rdir + sizeof(IMAGE_RESOURCE_DIRECTORY));
 
@@ -55,17 +59,17 @@ void traverse_directory(uint32_t base, void *root, PIMAGE_RESOURCE_DIRECTORY rdi
     {
         if (level < 2)
         {
-            traverse_directory(base, root, (void *)((uint8_t *)root + (rdir_ent->OffsetToData &~ (1 << 31))), level + 1);
+            traverse_directory(state, (void *)((uint8_t *)state->root + (rdir_ent->OffsetToData &~ (1 << 31))), level + 1);
         }
         else
         {
-            PIMAGE_RESOURCE_DATA_ENTRY leaf = (void *)((uint8_t *)root + (rdir_ent->OffsetToData &~ (1 << 31)));
+            PIMAGE_RESOURCE_DATA_ENTRY leaf = (void *)((uint8_t *)state->root + (rdir_ent->OffsetToData &~ (1 << 31)));
 
-            leaf->OffsetToData = leaf->OffsetToData - base;
+            leaf->OffsetToData = leaf->OffsetToData - state->base;
 
-            relocs[nrelocs].offset = (uint8_t *)&leaf->OffsetToData - (uint8_t *)root;
-            relocs[nrelocs].type = 7;
-            nrelocs++;
+            state->relocs[state->nrelocs].VirtualAddress = (uint8_t *)&leaf->OffsetToData - (uint8_t *)state->root;
+            state->relocs[state->nrelocs].Type = 7;
+            state->nrelocs++;
         }
 
         rdir_ent++;
@@ -79,6 +83,9 @@ int re2obj(int argc, char **argv)
     FILE   *fh    = NULL;
     int8_t *image = NULL;
     FILE   *ofh   = stdout;
+    re2obj_s state;
+
+    memset(&state, 0, sizeof(state));
 
     FAIL_IF(argc < 2, "usage: petool re2obj <image> [ofile]\n");
 
@@ -96,7 +103,7 @@ int re2obj(int argc, char **argv)
     PIMAGE_NT_HEADERS nt_hdr = (void *)(image + dos_hdr->e_lfanew);
 
     char *section = ".rsrc";
-    int8_t *data = NULL;
+    void *data = NULL;
     uint32_t data_len = 0;
 
     for (int32_t i = 0; i < nt_hdr->FileHeader.NumberOfSections; i++)
@@ -110,7 +117,10 @@ int re2obj(int argc, char **argv)
             if (sct_hdr ->Misc.VirtualSize > 0 && sct_hdr->Misc.VirtualSize < data_len)
                 data_len = sct_hdr->Misc.VirtualSize;
 
-            traverse_directory(sct_hdr->VirtualAddress, data, (PIMAGE_RESOURCE_DIRECTORY)data, 0);
+            state.base = sct_hdr->VirtualAddress;
+            state.root = data;
+
+            traverse_directory(&state, (PIMAGE_RESOURCE_DIRECTORY)data, 0);
             break;
         }
 
@@ -131,20 +141,20 @@ int re2obj(int argc, char **argv)
     SectionHeader.SizeOfRawData = data_len;
     SectionHeader.PointerToRawData = sizeof(FileHeader) + sizeof(SectionHeader);
     SectionHeader.PointerToRelocations = data_len + SectionHeader.PointerToRawData;
-    SectionHeader.NumberOfRelocations = nrelocs;
+    SectionHeader.NumberOfRelocations = state.nrelocs;
     SectionHeader.Characteristics = 0xC0300040;
 
-    FileHeader.PointerToSymbolTable = SectionHeader.PointerToRelocations + (sizeof(struct reloc_entry) * nrelocs);
+    FileHeader.PointerToSymbolTable = SectionHeader.PointerToRelocations + (sizeof(t_reloc) * state.nrelocs);
     FileHeader.NumberOfSymbols = 1;
 
     fwrite(&FileHeader, sizeof FileHeader, 1, ofh);
     fwrite(&SectionHeader, sizeof SectionHeader, 1, ofh);
     fwrite(data, data_len, 1, ofh);
 
-    for (uint32_t i = 0; i < nrelocs; i++)
-        fwrite(&relocs[i], sizeof (struct reloc_entry), 1, ofh);
+    for (uint32_t i = 0; i < state.nrelocs; i++)
+        fwrite(&state.relocs[i], sizeof(state.relocs[0]), 1, ofh);
 
-    struct sym_entry ent;
+    t_syment ent;
     strcpy(ent.e_name, ".rsrc");
     ent.e_value = 0;
     ent.e_scnum = 1;

@@ -47,8 +47,6 @@ int dump(int argc, char **argv)
     PIMAGE_DOS_HEADER dos_hdr = (void *)image;
     PIMAGE_NT_HEADERS nt_hdr = (void *)(image + dos_hdr->e_lfanew);
 
-    FAIL_IF(length < 512,                            "File too small.\n");
-
     if (nt_hdr->Signature != IMAGE_NT_SIGNATURE)
     {
         if (dos_hdr->e_magic == IMAGE_DOS_SIGNATURE)
@@ -83,6 +81,10 @@ int dump(int argc, char **argv)
             fprintf(stderr, "No valid signatures found in input file.\n");
             goto cleanup;
         }
+    }
+    else
+    {
+        FAIL_IF(length < 512, "File too small.\n");
     }
 
     printf(" section    start      end   length    vaddr    vsize  flags\n");

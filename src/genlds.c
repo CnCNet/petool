@@ -81,7 +81,7 @@ int genlds(int argc, char **argv)
             continue;
         }
 
-        /* resource section is not always directly recompilable even if it doesn't move, better to leave it out */
+        /* resource section is not directly recompilable even if it doesn't move, use re2obj command instead */
         if (strcmp(buf, ".rsrc") == 0) {
             fprintf(ofh, "    /DISCARD/                  : { %s(%s) }\n", argv[1], buf);
             continue;
@@ -109,6 +109,7 @@ int genlds(int argc, char **argv)
     }
 
     fprintf(ofh, "    /DISCARD/                  : { *(.drectve) }\n");
+    fprintf(ofh, "    .rsrc        ALIGN(0x%-4"PRIX32") : { *(.rsrc); }\n", nt_hdr->OptionalHeader.SectionAlignment);
     fprintf(ofh, "    .p_text      ALIGN(0x%-4"PRIX32") : { *(.text); }\n", nt_hdr->OptionalHeader.SectionAlignment);
     fprintf(ofh, "    .p_rdata     ALIGN(0x%-4"PRIX32") : { *(.rdata); }\n", nt_hdr->OptionalHeader.SectionAlignment);
     fprintf(ofh, "    .p_data      ALIGN(0x%-4"PRIX32") : { *(.data); }\n\n", nt_hdr->OptionalHeader.SectionAlignment);

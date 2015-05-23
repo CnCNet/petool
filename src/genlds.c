@@ -97,15 +97,17 @@ int genlds(int argc, char **argv)
             continue;
         }
 
-        fprintf(ofh, "    %-15s   0x%-6"PRIX32" : { %s(%s); }\n", buf, cur_sct->VirtualAddress + nt_hdr->OptionalHeader.ImageBase, file_basename(argv[1]), buf);
-
-        if (cur_sct->Misc.VirtualSize > cur_sct->SizeOfRawData) {
-            fprintf(ofh, "    .bss                       : { . = . + 0x%"PRIX32"; }\n", cur_sct->Misc.VirtualSize - cur_sct->SizeOfRawData);
-        }
-
         if (strcmp(buf, ".idata") == 0) {
             idata_exists = true;
         }
+
+        if (cur_sct->Misc.VirtualSize > cur_sct->SizeOfRawData) {
+            fprintf(ofh, "    %-15s   0x%-6"PRIX32" : { %s(%s); . = ALIGN(0x%"PRIX32"); }\n", buf, cur_sct->VirtualAddress + nt_hdr->OptionalHeader.ImageBase, file_basename(argv[1]), buf, nt_hdr->OptionalHeader.SectionAlignment);
+            fprintf(ofh, "     .bss     %16s : { . = . + 0x%"PRIX32"; }\n", align, cur_sct->Misc.VirtualSize - cur_sct->SizeOfRawData);
+            continue;
+        }
+
+        fprintf(ofh, "    %-15s   0x%-6"PRIX32" : { %s(%s); }\n", buf, cur_sct->VirtualAddress + nt_hdr->OptionalHeader.ImageBase, file_basename(argv[1]), buf);
     }
 
     fprintf(ofh, "\n");

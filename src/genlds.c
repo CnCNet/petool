@@ -78,7 +78,7 @@ int genlds(int argc, char **argv)
         memset(buf, 0, sizeof buf);
         memcpy(buf, cur_sct->Name, 8);
 
-        if (cur_sct->Characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA) {
+        if (cur_sct->Characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA && !(cur_sct->Characteristics & IMAGE_SCN_CNT_INITIALIZED_DATA)) {
             fprintf(ofh, "    /DISCARD/                  : { %s(%s); }\n", argv[1], buf);
             fprintf(ofh, "    %-15s   0x%-6"PRIX32" : { . = . + 0x%"PRIX32"; }\n", buf, cur_sct->VirtualAddress + nt_hdr->OptionalHeader.ImageBase, cur_sct->Misc.VirtualSize ? cur_sct->Misc.VirtualSize : cur_sct->SizeOfRawData);
             continue;

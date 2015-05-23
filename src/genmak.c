@@ -45,7 +45,7 @@ int genmak(int argc, char **argv)
     }
 
     fprintf(ofh, "-include config.mk\n\n");
-    fprintf(ofh, "INPUT       = %s\n", argv[1]);
+    fprintf(ofh, "INPUT       = %s\n", file_basename(argv[1]));
     fprintf(ofh, "OUTPUT      = %sp.exe\n", base);
     fprintf(ofh, "LDS         = %sp.lds\n", base);
     fprintf(ofh, "LDFLAGS     = --subsystem=windows\n\n"); // FIXME: detect subsystem from input file header?

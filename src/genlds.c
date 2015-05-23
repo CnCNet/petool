@@ -115,11 +115,11 @@ int genlds(int argc, char **argv)
     }
 
     fprintf(ofh, "    /DISCARD/                  : { *(.drectve); }\n");
-    fprintf(ofh, "    .rsrc     %16s : { *(.rsrc); }\n", align);
     fprintf(ofh, "    .p_text   %16s : { *(.text); }\n", align);
     fprintf(ofh, "    .p_rdata  %16s : { *(.rdata); }\n", align);
-    fprintf(ofh, "    .p_data   %16s : { *(.data); }\n\n", align);
-    fprintf(ofh, "    .p_bss    %16s : { *(.bss) *(COMMON); }\n\n", align);
+    fprintf(ofh, "    .p_data   %16s : { *(.data); }\n", align);
+    fprintf(ofh, "    .p_bss    %16s : { *(.bss) *(COMMON); }\n", align);
+    fprintf(ofh, "    .rsrc     %16s : { *(.rsrc); }\n\n", align);
     fprintf(ofh, "    .patch    %16s : { *(.patch) }\n", align);
 
     fprintf(ofh, "}\n");

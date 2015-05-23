@@ -91,7 +91,7 @@ int genmak(int argc, char **argv)
     fprintf(ofh, "\t$(PETOOL) re2obj $(INPUT) $@\n\n");
 
     fprintf(ofh, "$(OUTPUT): $(LDS) $(INPUT) $(OBJS)\n");
-    fprintf(ofh, "\t$(LD) $(LDFLAGS) -T $(LDS) -o $@ $(INPUT) $(OBJS)\n");
+    fprintf(ofh, "\t$(LD) $(LDFLAGS) -T $(LDS) -o $@ $(OBJS)\n");
     fprintf(ofh, "ifneq (,$(IMPORTS))\n");
     fprintf(ofh, "\t$(PETOOL) setdd $@ 1 $(IMPORTS) || ($(RM) $@ && exit 1)\n");
     fprintf(ofh, "endif\n");

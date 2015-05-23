@@ -56,8 +56,12 @@ int genlds(int argc, char **argv)
     PIMAGE_NT_HEADERS nt_hdr = (void *)(image + dos_hdr->e_lfanew);
 
     FAIL_IF(length < 512,                            "File too small.\n");
-    FAIL_IF(dos_hdr->e_magic != IMAGE_DOS_SIGNATURE, "File DOS signature invalid.\n");
-    FAIL_IF(nt_hdr->Signature != IMAGE_NT_SIGNATURE, "File NT signature invalid.\n");
+
+    if (nt_hdr->Signature != IMAGE_NT_SIGNATURE)
+    {
+        nt_hdr = (void *)(image - 4);
+        FAIL_IF(nt_hdr->FileHeader.Machine != 0x014C, "No valid signatures found.\n");
+    }
 
     fprintf(ofh, "/* GNU ld linker script for %s */\n", file_basename(argv[1]));
     fprintf(ofh, "start = 0x%"PRIX32";\n", nt_hdr->OptionalHeader.ImageBase + nt_hdr->OptionalHeader.AddressOfEntryPoint);

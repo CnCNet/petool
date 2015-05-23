@@ -66,6 +66,7 @@ int genlds(int argc, char **argv)
     fprintf(ofh, "{\n");
 
     bool idata_exists = false;
+    uint16_t filln = 0;
 
     for (int i = 0; i < nt_hdr->FileHeader.NumberOfSections; i++)
     {
@@ -83,6 +84,13 @@ int genlds(int argc, char **argv)
         /* resource section is not directly recompilable even if it doesn't move, use re2obj command instead */
         if (strcmp(buf, ".rsrc") == 0) {
             fprintf(ofh, "    /DISCARD/                  : { %s(%s); }\n", argv[1], buf);
+
+
+            if (i < nt_hdr->FileHeader.NumberOfSections - 1) {
+                sprintf(buf, "FILL%d", filln++);
+                fprintf(ofh, "    %-15s   0x%-6"PRIX32" : { . = . + 0x%"PRIX32"; }\n", buf, cur_sct->VirtualAddress + nt_hdr->OptionalHeader.ImageBase, cur_sct->Misc.VirtualSize ? cur_sct->Misc.VirtualSize : cur_sct->SizeOfRawData);
+            }
+
             continue;
         }
 

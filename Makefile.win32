@@ -1,0 +1,5 @@
+CC = i686-w64-mingw32-gcc
+STRIP = i686-w64-mingw32-strip
+TARGET = petool.exe
+
+-include Makefile

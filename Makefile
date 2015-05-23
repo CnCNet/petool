@@ -1,7 +1,7 @@
 REV     ?= $(shell git rev-parse --short @{0})
-CC      ?= gcc
-RM      ?= rm -f
+STRIP   ?= strip
 CFLAGS  ?= -std=c99 -pedantic -Wall -Wextra -DREV=\"$(REV)\"
+TARGET  ?= petool
 
 ifdef DEBUG
 CFLAGS  += -ggdb
@@ -9,11 +9,12 @@ else
 CFLAGS  += -O2
 endif
 
-all: petool
+all: $(TARGET)
 
-petool: $(wildcard src/*.c)
+$(TARGET): $(wildcard src/*.c)
 	$(CC) $(CFLAGS) -o $@ $^
+	$(STRIP) -s $@
 
 .PHONY: clean
 clean:
-	$(RM) petool
+	$(RM) $(TARGET)

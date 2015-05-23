@@ -31,7 +31,7 @@ int genmak(int argc, char **argv);
 
 void help(char *progname)
 {
-    fprintf(stderr, "petool git~%s (c) 2013 Toni Spets\n\n", REV);
+    fprintf(stderr, "petool git~%s (c) 2013 - 2015 Toni Spets\n\n", REV);
     fprintf(stderr, "usage: %s <command> [args ...]\n\n", progname);
     fprintf(stderr, "commands:"                                                 "\n"
             "    dump   -- dump information about section of executable"        "\n"

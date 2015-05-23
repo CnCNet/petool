@@ -18,13 +18,17 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <inttypes.h>
 
+#include "pe.h"
 #include "cleanup.h"
 #include "common.h"
 
 int genmak(int argc, char **argv)
 {
     int     ret   = EXIT_SUCCESS;
+    FILE   *fh    = NULL;
+    int8_t *image = NULL;
     FILE   *ofh   = stdout;
     char   base[256] = { '\0' };
 
@@ -37,6 +41,19 @@ int genmak(int argc, char **argv)
         FAIL_IF_PERROR(ofh == NULL, "%s");
     }
 
+    uint32_t length;
+    FAIL_IF_SILENT(open_and_read(&fh, &image, &length, argv[1], "rb"));
+
+    fclose(fh);
+    fh = NULL; // for cleanup
+
+    PIMAGE_DOS_HEADER dos_hdr = (void *)image;
+    PIMAGE_NT_HEADERS nt_hdr = (void *)(image + dos_hdr->e_lfanew);
+
+    FAIL_IF(length < 512,                            "File too small.\n");
+    FAIL_IF(dos_hdr->e_magic != IMAGE_DOS_SIGNATURE, "File DOS signature invalid.\n");
+    FAIL_IF(nt_hdr->Signature != IMAGE_NT_SIGNATURE, "File NT signature invalid.\n");
+
     strcpy(base, file_basename(argv[1]));
     char *p = strrchr(base, '.');
     if (p)
@@ -48,7 +65,12 @@ int genmak(int argc, char **argv)
     fprintf(ofh, "INPUT       = %s\n", file_basename(argv[1]));
     fprintf(ofh, "OUTPUT      = %sp.exe\n", base);
     fprintf(ofh, "LDS         = %sp.lds\n", base);
-    fprintf(ofh, "LDFLAGS     = --subsystem=windows\n\n"); // FIXME: detect subsystem from input file header?
+    fprintf(ofh, "LDFLAGS     = --section-alignment=0x%"PRIX32, nt_hdr->OptionalHeader.SectionAlignment);
+
+    if (nt_hdr->OptionalHeader.Subsystem == 2)
+        fprintf(ofh, " --subsystem=windows");
+
+    fprintf(ofh, "\n\n");
 
     fprintf(ofh, "OBJS        = rsrc.o\n\n");
 
@@ -75,5 +97,7 @@ cleanup:
         if (ofh)   fclose(ofh);
     }
 
+    if (image) free(image);
+    if (fh)    fclose(fh);
     return ret;
 }

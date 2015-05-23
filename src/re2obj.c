@@ -94,7 +94,6 @@ int re2obj(int argc, char **argv)
 
     if (argc > 2)
     {
-        FAIL_IF(file_exists(argv[2]), "%s: output file already exists.\n", argv[2]);
         ofh = fopen(argv[2], "w");
         FAIL_IF_PERROR(ofh == NULL, "%s");
     }

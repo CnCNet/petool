@@ -68,6 +68,9 @@ int genlds(int argc, char **argv)
     bool idata_exists = false;
     uint16_t filln = 0;
 
+    char align[64];
+    sprintf(align, "ALIGN(0x%-4"PRIX32")", nt_hdr->OptionalHeader.SectionAlignment);
+
     for (int i = 0; i < nt_hdr->FileHeader.NumberOfSections; i++)
     {
         const PIMAGE_SECTION_HEADER cur_sct = IMAGE_FIRST_SECTION(nt_hdr) + i;
@@ -97,7 +100,7 @@ int genlds(int argc, char **argv)
         fprintf(ofh, "    %-15s   0x%-6"PRIX32" : { %s(%s); }\n", buf, cur_sct->VirtualAddress + nt_hdr->OptionalHeader.ImageBase, file_basename(argv[1]), buf);
 
         if (cur_sct->Misc.VirtualSize > cur_sct->SizeOfRawData) {
-            fprintf(ofh, "    .bss         ALIGN(0x%-4"PRIX32") : { . = . + 0x%"PRIX32"; }\n", nt_hdr->OptionalHeader.SectionAlignment, cur_sct->Misc.VirtualSize - cur_sct->SizeOfRawData);
+            fprintf(ofh, "    .bss                       : { . = . + 0x%"PRIX32"; }\n", cur_sct->Misc.VirtualSize - cur_sct->SizeOfRawData);
         }
 
         if (strcmp(buf, ".idata") == 0) {
@@ -108,16 +111,16 @@ int genlds(int argc, char **argv)
     fprintf(ofh, "\n");
 
     if (!idata_exists) {
-        fprintf(ofh, "    .idata       ALIGN(0x%-4"PRIX32") : { *(.idata); }\n\n", nt_hdr->OptionalHeader.SectionAlignment);
+        fprintf(ofh, "    .idata    %16s : { *(.idata); }\n\n", align);
     }
 
     fprintf(ofh, "    /DISCARD/                  : { *(.drectve); }\n");
-    fprintf(ofh, "    .rsrc        ALIGN(0x%-4"PRIX32"): { *(.rsrc); }\n", nt_hdr->OptionalHeader.SectionAlignment);
-    fprintf(ofh, "    .p_text      ALIGN(0x%-4"PRIX32"): { *(.text); }\n", nt_hdr->OptionalHeader.SectionAlignment);
-    fprintf(ofh, "    .p_rdata     ALIGN(0x%-4"PRIX32"): { *(.rdata); }\n", nt_hdr->OptionalHeader.SectionAlignment);
-    fprintf(ofh, "    .p_data      ALIGN(0x%-4"PRIX32"): { *(.data); }\n\n", nt_hdr->OptionalHeader.SectionAlignment);
-    fprintf(ofh, "    .p_bss       ALIGN(0x%-4"PRIX32"): { *(.bss) *(COMMON); }\n\n", nt_hdr->OptionalHeader.SectionAlignment);
-    fprintf(ofh, "    .patch       ALIGN(0x%-4"PRIX32"): { *(.patch) }\n", nt_hdr->OptionalHeader.SectionAlignment);
+    fprintf(ofh, "    .rsrc     %16s : { *(.rsrc); }\n", align);
+    fprintf(ofh, "    .p_text   %16s : { *(.text); }\n", align);
+    fprintf(ofh, "    .p_rdata  %16s : { *(.rdata); }\n", align);
+    fprintf(ofh, "    .p_data   %16s : { *(.data); }\n\n", align);
+    fprintf(ofh, "    .p_bss    %16s : { *(.bss) *(COMMON); }\n\n", align);
+    fprintf(ofh, "    .patch    %16s : { *(.patch) }\n", align);
 
     fprintf(ofh, "}\n");
 

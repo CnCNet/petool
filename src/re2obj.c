@@ -101,6 +101,14 @@ int re2obj(int argc, char **argv)
     PIMAGE_DOS_HEADER dos_hdr = (void *)image;
     PIMAGE_NT_HEADERS nt_hdr = (void *)(image + dos_hdr->e_lfanew);
 
+    // quick COFF hack
+    if (nt_hdr->Signature != IMAGE_NT_SIGNATURE)
+    {
+        // nasty trick but we're careful, right?
+        nt_hdr = (void *)(image - 4);
+        FAIL_IF(nt_hdr->FileHeader.Machine != 0x014C, "No valid signatures found.\n");
+    }
+
     char *section = ".rsrc";
     void *data = NULL;
     uint32_t data_len = 0;

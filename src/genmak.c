@@ -65,6 +65,14 @@ int genmak(int argc, char **argv)
     fprintf(ofh, "INPUT       = %s\n", file_basename(argv[1]));
     fprintf(ofh, "OUTPUT      = %sp.exe\n", base);
     fprintf(ofh, "LDS         = %sp.lds\n", base);
+
+    fprintf(ofh, "IMPORTS     =");
+    if (nt_hdr->OptionalHeader.DataDirectory[1].VirtualAddress)
+    {
+        fprintf(ofh, " 0x%"PRIX32" %d", nt_hdr->OptionalHeader.DataDirectory[1].VirtualAddress, nt_hdr->OptionalHeader.DataDirectory[1].Size);
+    }
+    fprintf(ofh, "\n");
+
     fprintf(ofh, "LDFLAGS     = --section-alignment=0x%"PRIX32, nt_hdr->OptionalHeader.SectionAlignment);
 
     if (nt_hdr->OptionalHeader.Subsystem == 2)
@@ -84,6 +92,9 @@ int genmak(int argc, char **argv)
 
     fprintf(ofh, "$(OUTPUT): $(LDS) $(INPUT) $(OBJS)\n");
     fprintf(ofh, "\t$(LD) $(LDFLAGS) -T $(LDS) -o $@ $(INPUT) $(OBJS)\n");
+    fprintf(ofh, "ifneq (,$(IMPORTS))\n");
+    fprintf(ofh, "\t$(PETOOL) setdd $@ 1 $(IMPORTS) || ($(RM) $@ && exit 1)\n");
+    fprintf(ofh, "endif\n");
     fprintf(ofh, "\t$(PETOOL) patch $@ || ($(RM) $@ && exit 1)\n");
     fprintf(ofh, "\t$(STRIP) -R .patch $@ || ($(RM) $@ && exit 1)\n");
     fprintf(ofh, "\t$(PETOOL) dump $@\n\n");

@@ -94,7 +94,7 @@ int re2obj(int argc, char **argv)
 
     if (argc > 2)
     {
-        ofh = fopen(argv[2], "w");
+        ofh = fopen(argv[2], "wb");
         FAIL_IF_PERROR(ofh == NULL, "%s");
     }
 

@@ -13,6 +13,8 @@ Tool to help rebuild and patch 32-bit Windows applications.
  - `setvs`  - set VirtualSize for a section
  - `export` - export section data as raw binary
  - `import` - dump the import table as assembly
+ - `re2obj` - convert the resource section into COFF object
+ - `genmak` - generate project Makefile
 
 ### Note on GNU binutils
 
@@ -70,6 +72,11 @@ removing it from the linker script.
 
 You should be able to re-link the executable now by feeding the generated object
 file and linker script to ld.
+
+Finally, generate a Makefile with `genmak`. It should work as-is with your
+linker script and be able to rebuild the executable without any modifications
+including resources from the `.rsrc` section. This default Makefile assumes you
+don't want to change the imports so it sets the old import table address back.
 
 Hooking and patching
 --------------------------------------------------------------------------------

@@ -50,7 +50,7 @@ bool file_exists(const char *path)
 
 const char *file_basename(const char *path)
 {
-    static char basebuf[256];
+    static char basebuf[4096];
     size_t i;
 
     if (path == NULL)

@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "common.h"
 
 int dump(int argc, char **argv);
 int genlds(int argc, char **argv);
@@ -76,6 +77,12 @@ int main(int argc, char **argv)
     }
     else
     {
+        if (file_exists(argv[1]))
+        {
+            char *cmd_argv[2] = { "genprj", argv[1] };
+            return genprj(2, cmd_argv);
+        }
+
         fprintf(stderr, "Unknown command: %s\n", argv[1]);
         help(argv[0]);
         return EXIT_FAILURE;

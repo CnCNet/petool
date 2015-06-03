@@ -80,15 +80,23 @@ int genmak(int argc, char **argv)
 
     fprintf(ofh, "\n\n");
 
-    fprintf(ofh, "OBJS        = rsrc.o\n\n");
+    fprintf(ofh, "OBJS        = ");
+    if (nt_hdr->OptionalHeader.DataDirectory[2].VirtualAddress)
+    {
+        fprintf(ofh, "rsrc.o");
+    }
+    fprintf(ofh, "\n\n");
 
     fprintf(ofh, "PETOOL     ?= petool\n");
     fprintf(ofh, "STRIP      ?= strip\n\n");
 
     fprintf(ofh, "all: $(OUTPUT)\n\n");
 
-    fprintf(ofh, "rsrc.o: $(INPUT)\n");
-    fprintf(ofh, "\t$(PETOOL) re2obj $(INPUT) $@\n\n");
+    if (nt_hdr->OptionalHeader.DataDirectory[2].VirtualAddress)
+    {
+        fprintf(ofh, "rsrc.o: $(INPUT)\n");
+        fprintf(ofh, "\t$(PETOOL) re2obj $(INPUT) $@\n\n");
+    }
 
     fprintf(ofh, "$(OUTPUT): $(LDS) $(INPUT) $(OBJS)\n");
     fprintf(ofh, "\t$(LD) $(LDFLAGS) -T $(LDS) -o $@ $(OBJS)\n");

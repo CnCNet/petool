@@ -70,3 +70,29 @@ const char *file_basename(const char *path)
 
     return basebuf;
 }
+
+int file_copy(const char* from, const char *to)
+{
+    int ret = EXIT_SUCCESS;
+    FILE *from_fh = NULL, *to_fh = NULL;
+    static char buf[4096];
+    size_t numread;
+
+    from_fh = fopen(from, "rb");
+    FAIL_IF_PERROR(!from_fh, "Could not open input file");
+
+    FAIL_IF(file_exists(to), "Output file already exists.\n");
+
+    to_fh = fopen(to, "wb");
+    FAIL_IF_PERROR(!to_fh, "Could not open output file");
+
+    while ((numread = fread(buf, 1, sizeof buf, from_fh)) > 0)
+    {
+        FAIL_IF_PERROR(fwrite(buf, 1, numread, to_fh) != numread, "Output file truncated");
+    }
+
+cleanup:
+    if (from_fh) fclose(from_fh);
+    if (to_fh) fclose(to_fh);
+    return ret;
+}

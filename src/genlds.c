@@ -83,14 +83,14 @@ int genlds(int argc, char **argv)
         memcpy(buf, cur_sct->Name, 8);
 
         if (cur_sct->Characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA && !(cur_sct->Characteristics & IMAGE_SCN_CNT_INITIALIZED_DATA)) {
-            fprintf(ofh, "    /DISCARD/                  : { %s(%s); }\n", file_basename(argv[1]), buf);
+            fprintf(ofh, "    /DISCARD/                  : { %s(%s) }\n", file_basename(argv[1]), buf);
             fprintf(ofh, "    %-15s   0x%-6"PRIX32" : { . = . + 0x%"PRIX32"; }\n", buf, cur_sct->VirtualAddress + nt_hdr->OptionalHeader.ImageBase, cur_sct->Misc.VirtualSize ? cur_sct->Misc.VirtualSize : cur_sct->SizeOfRawData);
             continue;
         }
 
         /* resource section is not directly recompilable even if it doesn't move, use re2obj command instead */
         if (strcmp(buf, ".rsrc") == 0) {
-            fprintf(ofh, "    /DISCARD/                  : { %s(%s); }\n", file_basename(argv[1]), buf);
+            fprintf(ofh, "    /DISCARD/                  : { %s(%s) }\n", file_basename(argv[1]), buf);
 
 
             if (i < nt_hdr->FileHeader.NumberOfSections - 1) {
@@ -106,26 +106,26 @@ int genlds(int argc, char **argv)
         }
 
         if (cur_sct->Misc.VirtualSize > cur_sct->SizeOfRawData) {
-            fprintf(ofh, "    %-15s   0x%-6"PRIX32" : { %s(%s); . = ALIGN(0x%"PRIX32"); }\n", buf, cur_sct->VirtualAddress + nt_hdr->OptionalHeader.ImageBase, file_basename(argv[1]), buf, nt_hdr->OptionalHeader.SectionAlignment);
+            fprintf(ofh, "    %-15s   0x%-6"PRIX32" : { %s(%s) . = ALIGN(0x%"PRIX32"); }\n", buf, cur_sct->VirtualAddress + nt_hdr->OptionalHeader.ImageBase, file_basename(argv[1]), buf, nt_hdr->OptionalHeader.SectionAlignment);
             fprintf(ofh, "    .bss      %16s : { . = . + 0x%"PRIX32"; }\n", align, cur_sct->Misc.VirtualSize - cur_sct->SizeOfRawData);
             continue;
         }
 
-        fprintf(ofh, "    %-15s   0x%-6"PRIX32" : { %s(%s); }\n", buf, cur_sct->VirtualAddress + nt_hdr->OptionalHeader.ImageBase, file_basename(argv[1]), buf);
+        fprintf(ofh, "    %-15s   0x%-6"PRIX32" : { %s(%s) }\n", buf, cur_sct->VirtualAddress + nt_hdr->OptionalHeader.ImageBase, file_basename(argv[1]), buf);
     }
 
     fprintf(ofh, "\n");
 
     if (!idata_exists) {
-        fprintf(ofh, "    .idata    %16s : { *(.idata); }\n\n", align);
+        fprintf(ofh, "    .idata    %16s : { *(.idata) }\n\n", align);
     }
 
-    fprintf(ofh, "    /DISCARD/                  : { *(.drectve); *(.rdata$zzz); }\n");
-    fprintf(ofh, "    .p_text   %16s : { *(.text); }\n", align);
-    fprintf(ofh, "    .p_rdata  %16s : { *(.rdata); }\n", align);
-    fprintf(ofh, "    .p_data   %16s : { *(.data); }\n", align);
-    fprintf(ofh, "    .p_bss    %16s : { *(.bss) *(COMMON); }\n", align);
-    fprintf(ofh, "    .rsrc     %16s : { *(.rsrc); }\n\n", align);
+    fprintf(ofh, "    /DISCARD/                  : { *(.drectve) *(.rdata$zzz) }\n");
+    fprintf(ofh, "    .p_text   %16s : { *(.text) }\n", align);
+    fprintf(ofh, "    .p_rdata  %16s : { *(.rdata) }\n", align);
+    fprintf(ofh, "    .p_data   %16s : { *(.data) }\n", align);
+    fprintf(ofh, "    .p_bss    %16s : { *(.bss) *(COMMON) }\n", align);
+    fprintf(ofh, "    .rsrc     %16s : { *(.rsrc) }\n\n", align);
     fprintf(ofh, "    .patch    %16s : { *(.patch) }\n", align);
 
     fprintf(ofh, "}\n");

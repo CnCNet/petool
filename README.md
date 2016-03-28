@@ -19,9 +19,8 @@ Tool to help rebuild and patch 32-bit Windows applications.
 
 ### Note on GNU binutils
 
-You need `GNU binutils` *2.25.51-20150607* or at least commit `9ac47a4` to
-successfully do everything without assertion errors. Fixes are expected to
-land in *2.26* when it is released.
+You need `GNU binutils` *2.26* to successfully do everything without assertion
+errors.
 
 All stable releases before 2.26 suffer from missing absolute reloc support
 for COFF object files which means you can't jump to or call absolute memory

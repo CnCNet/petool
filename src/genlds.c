@@ -83,14 +83,14 @@ int genlds(int argc, char **argv)
         memcpy(buf, cur_sct->Name, 8);
 
         if (cur_sct->Characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA && !(cur_sct->Characteristics & IMAGE_SCN_CNT_INITIALIZED_DATA)) {
-            fprintf(ofh, "    /DISCARD/                  : { %s(%s); }\n", argv[1], buf);
+            fprintf(ofh, "    /DISCARD/                  : { %s(%s); }\n", file_basename(argv[1]), buf);
             fprintf(ofh, "    %-15s   0x%-6"PRIX32" : { . = . + 0x%"PRIX32"; }\n", buf, cur_sct->VirtualAddress + nt_hdr->OptionalHeader.ImageBase, cur_sct->Misc.VirtualSize ? cur_sct->Misc.VirtualSize : cur_sct->SizeOfRawData);
             continue;
         }
 
         /* resource section is not directly recompilable even if it doesn't move, use re2obj command instead */
         if (strcmp(buf, ".rsrc") == 0) {
-            fprintf(ofh, "    /DISCARD/                  : { %s(%s); }\n", argv[1], buf);
+            fprintf(ofh, "    /DISCARD/                  : { %s(%s); }\n", file_basename(argv[1]), buf);
 
 
             if (i < nt_hdr->FileHeader.NumberOfSections - 1) {

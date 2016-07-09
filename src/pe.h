@@ -31,6 +31,7 @@
 #define IMAGE_SCN_MEM_EXECUTE               0x20000000
 #define IMAGE_SCN_MEM_READ                  0x40000000
 #define IMAGE_SCN_MEM_WRITE                 0x80000000
+#define IMAGE_SCN_ALIGN_MASK                0x00F00000
 
 #define IMAGE_DIRECTORY_ENTRY_EXPORT          0   // Export Directory
 #define IMAGE_DIRECTORY_ENTRY_IMPORT          1   // Import Directory

@@ -44,12 +44,14 @@ int dump(int argc, char **argv)
     fclose(fh);
     fh = NULL; // for cleanup
 
+    FAIL_IF(length < 512, "File too small.\n");
+
     PIMAGE_DOS_HEADER dos_hdr = (void *)image;
     PIMAGE_NT_HEADERS nt_hdr = (void *)(image + dos_hdr->e_lfanew);
 
-    if (nt_hdr->Signature != IMAGE_NT_SIGNATURE)
+    if (dos_hdr->e_magic == IMAGE_DOS_SIGNATURE)
     {
-        if (dos_hdr->e_magic == IMAGE_DOS_SIGNATURE)
+        if (nt_hdr->Signature != IMAGE_NT_SIGNATURE)
         {
             uint32_t exe_start = dos_hdr->e_cparhdr * 16L;
             uint32_t exe_end = dos_hdr->e_cp * 512L - (dos_hdr->e_cblp ? 512L - dos_hdr->e_cblp : 0);
@@ -73,8 +75,10 @@ int dump(int argc, char **argv)
             printf("\nEXE data is from offset %04X (%d) to %04X (%d).\n", exe_start, exe_start, exe_end, exe_end);
             goto cleanup;
         }
-
-        // nasty trick but we're careful, right?
+    }
+    else
+    {
+        // a hack for raw COFF object files
         nt_hdr = (void *)(image - 4);
         if (nt_hdr->FileHeader.Machine != 0x014C)
         {
@@ -82,19 +86,20 @@ int dump(int argc, char **argv)
             goto cleanup;
         }
     }
-    else
-    {
-        FAIL_IF(length < 512, "File too small.\n");
-    }
 
-    printf(" section    start      end   length    vaddr    vsize  flags\n");
-    printf("------------------------------------------------------------\n");
+    printf(" section    start      end   length    vaddr    vsize  flags  align\n");
+    printf("-------------------------------------------------------------------\n");
 
     for (int i = 0; i < nt_hdr->FileHeader.NumberOfSections; i++)
     {
         const PIMAGE_SECTION_HEADER cur_sct = IMAGE_FIRST_SECTION(nt_hdr) + i;
+
+        uint32_t align = (cur_sct->Characteristics & IMAGE_SCN_ALIGN_MASK)
+                        ? (uint32_t)(1 << (((cur_sct->Characteristics & IMAGE_SCN_ALIGN_MASK) >> 20) - 1))
+                        : nt_hdr->OptionalHeader.SectionAlignment;
+
         printf(
-            "%8.8s %8"PRIX32" %8"PRIX32" %8"PRIX32" %8"PRIX32" %8"PRIX32" %c%c%c%c%c%c\n",
+            "%8.8s %8"PRIX32" %8"PRIX32" %8"PRIX32" %8"PRIX32" %8"PRIX32" %c%c%c%c%c%c %6"PRIX32"\n",
             cur_sct->Name,
             cur_sct->PointerToRawData,
             cur_sct->PointerToRawData + cur_sct->SizeOfRawData,
@@ -106,7 +111,8 @@ int dump(int argc, char **argv)
             cur_sct->Characteristics & IMAGE_SCN_MEM_EXECUTE            ? 'x' : '-',
             cur_sct->Characteristics & IMAGE_SCN_CNT_CODE               ? 'c' : '-',
             cur_sct->Characteristics & IMAGE_SCN_CNT_INITIALIZED_DATA   ? 'i' : '-',
-            cur_sct->Characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA ? 'u' : '-'
+            cur_sct->Characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA ? 'u' : '-',
+            align
         );
     }
 

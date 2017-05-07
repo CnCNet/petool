@@ -33,7 +33,8 @@ int genprj(int argc, char **argv);
 
 void help(char *progname)
 {
-    fprintf(stderr, "petool git~%s (c) 2013 - 2015 Toni Spets\n\n", REV);
+    fprintf(stderr, "petool git~%s (c) 2013 - 2017 Toni Spets\n", REV);
+    fprintf(stderr, "https://github.com/CnCNet/petool\n\n");
     fprintf(stderr, "usage: %s <command> [args ...]\n\n", progname);
     fprintf(stderr, "commands:"                                                 "\n"
             "    dump   -- dump information about section of executable"        "\n"
@@ -55,8 +56,8 @@ int main(int argc, char **argv)
 {
     if (argc < 2)
     {
-        fprintf(stderr, "No command given: please give valid command name as first argument\n\n");
         help(argv[0]);
+        fprintf(stderr, "\nNo command given: please give valid command name as first argument\n\n");
         return EXIT_FAILURE;
     }
     else if (strcmp(argv[1], "dump")   == 0) return dump   (argc - 1, argv + 1);
